@@ -45,7 +45,8 @@ export function useDictation() {
       const e = event as ResultLike;
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i += 1) {
-        const result = e.results[i];
+        const result = e.results[i] as { isFinal: boolean; 0: { transcript: string } } | undefined;
+        if (!result) continue;
         if (result.isFinal) {
           const text = result[0].transcript.trim();
           if (text) setFinalText((prev) => `${prev}${capitalize(text)}. `);
