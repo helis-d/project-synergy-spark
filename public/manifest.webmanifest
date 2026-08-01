@@ -1,0 +1,26 @@
+{
+  "name": "North — Yazı Editörü",
+  "short_name": "North",
+  "description": "Akış modu, dallanma ve canlı taslak destekli yazı editörü.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F5F1E8",
+  "theme_color": "#F5F1E8",
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "/north-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/north-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
