@@ -425,7 +425,7 @@ export function NorthApp() {
               onMouseUp={openLinkPopup}
               onClick={handleEditorClick}
               onBlur={commitHtml}
-              className="north-paper north-prose min-h-[62vh] px-5 py-7 text-ink outline-none sm:px-10 sm:py-12"
+              className="north-paper north-prose min-h-[calc(100dvh-13rem)] px-5 py-7 text-ink outline-none sm:px-10 sm:py-12"
               style={mdMode ? { pointerEvents: "none", opacity: 0.85 } : undefined}
             />
             {mdMode && (
@@ -433,7 +433,7 @@ export function NorthApp() {
                 value={mdText}
                 onChange={(event) => setMdText(event.target.value)}
                 aria-label="Markdown kaynağı"
-                className="north-paper min-h-[62vh] w-full resize-none p-5 font-mono text-[13.5px] leading-relaxed text-ink outline-none focus:border-primary"
+                className="north-paper min-h-[calc(100dvh-13rem)] w-full resize-none p-5 font-mono text-[13.5px] leading-relaxed text-ink outline-none focus:border-primary"
               />
             )}
           </div>
