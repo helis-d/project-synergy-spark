@@ -62,8 +62,8 @@ export function Toolbar({
       try {
         const next: Record<string, boolean> = {};
         for (const command of INLINE_COMMANDS) next[command] = document.queryCommandState(command);
-        next.insertUnorderedList = document.queryCommandState("insertUnorderedList");
-        next.insertOrderedList = document.queryCommandState("insertOrderedList");
+        next["insertUnorderedList"] = document.queryCommandState("insertUnorderedList");
+        next["insertOrderedList"] = document.queryCommandState("insertOrderedList");
         setMarks(next);
         const value = (document.queryCommandValue("formatBlock") || "p").toString().toUpperCase();
         setBlock(value);
@@ -120,7 +120,7 @@ export function Toolbar({
           <button
             type="button"
             className={markClass("bold")}
-            aria-pressed={!!marks.bold}
+            aria-pressed={!!marks["bold"]}
             onClick={() => onCommand("bold")}
             title="Kalın (⌘B)"
             aria-label="Kalın"
@@ -130,7 +130,7 @@ export function Toolbar({
           <button
             type="button"
             className={markClass("italic")}
-            aria-pressed={!!marks.italic}
+            aria-pressed={!!marks["italic"]}
             onClick={() => onCommand("italic")}
             title="İtalik (⌘I)"
             aria-label="İtalik"
@@ -140,7 +140,7 @@ export function Toolbar({
           <button
             type="button"
             className={markClass("underline")}
-            aria-pressed={!!marks.underline}
+            aria-pressed={!!marks["underline"]}
             onClick={() => onCommand("underline")}
             title="Altı çizili (⌘U)"
             aria-label="Altı çizili"
@@ -150,7 +150,7 @@ export function Toolbar({
           <button
             type="button"
             className={markClass("strikeThrough")}
-            aria-pressed={!!marks.strikeThrough}
+            aria-pressed={!!marks["strikeThrough"]}
             onClick={() => onCommand("strikeThrough")}
             title="Üstü çizili"
             aria-label="Üstü çizili"
