@@ -1,5 +1,19 @@
-import { Mic, Square, X, Clock, Download, Trash2 } from "lucide-react";
+import { type RefObject } from "react";
+import {
+  Mic,
+  Square,
+  X,
+  Clock,
+  Trash2,
+  Upload,
+  Key,
+  FileDown,
+  ChevronDown,
+} from "lucide-react";
+import { useState } from "react";
 import { THEME_LABELS, formatHour, type ThemeName } from "@/lib/north/theme";
+import type { ExportFormat } from "@/lib/north/fileio";
+import { getFormatLabel } from "@/lib/north/fileio";
 
 interface SidePanelProps {
   open: boolean;
@@ -12,14 +26,21 @@ interface SidePanelProps {
   interimText: string;
   diff: { added: string[]; removed: string[] } | null;
   activeBranch: string;
+  hasApiKey: boolean;
   onClose: () => void;
   onToggleDictation: () => void;
   onClearDictation: () => void;
   onHourChange: (hour: number) => void;
   onAutoTimeChange: (auto: boolean) => void;
-  onExport: () => void;
+  onExport: (format: ExportFormat) => void;
+  onExportBranch: (format: ExportFormat, branchName: string) => void;
+  onImport: (files: FileList) => void;
   onReset: () => void;
+  onOpenApiKey: () => void;
+  fileImportRef: RefObject<HTMLInputElement | null>;
 }
+
+const FORMATS: ExportFormat[] = ["nh", "md", "html", "txt"];
 
 export function SidePanel({
   open,
@@ -32,14 +53,21 @@ export function SidePanel({
   interimText,
   diff,
   activeBranch,
+  hasApiKey,
   onClose,
   onToggleDictation,
   onClearDictation,
   onHourChange,
   onAutoTimeChange,
   onExport,
+  onExportBranch,
+  onImport,
   onReset,
+  onOpenApiKey,
+  fileImportRef,
 }: SidePanelProps) {
+  const [exportMenu, setExportMenu] = useState(false);
+
   return (
     <>
       {open && (
@@ -181,24 +209,88 @@ export function SidePanel({
           </label>
         </div>
 
+        <h2 className="mt-6 mb-2 text-[11px] tracking-widest text-ink-dim uppercase">
+          AI Anahtarı
+        </h2>
+        <button
+          type="button"
+          onClick={onOpenApiKey}
+          className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-[13px] transition-all hover:bg-secondary active:scale-[0.98] ${
+            hasApiKey ? "border-success/40 text-ink" : "border-dashed border-line text-ink-dim"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Key className={`h-4 w-4 ${hasApiKey ? "text-success" : ""}`} />
+            {hasApiKey ? "AI anahtarı tanımlı" : "AI anahtarı ekle"}
+          </span>
+          <span className={`h-2 w-2 rounded-full ${hasApiKey ? "bg-success" : "bg-muted-foreground/40"}`} />
+        </button>
+
         <h2 className="mt-6 mb-2 text-[11px] tracking-widest text-ink-dim uppercase">Belge</h2>
         <div className="flex flex-col gap-2">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setExportMenu((prev) => !prev)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px] text-ink transition-all hover:bg-secondary active:scale-[0.98]"
+            >
+              <FileDown className="h-4 w-4" /> İndir
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {exportMenu && (
+              <div className="north-paper absolute right-0 top-10 z-10 flex w-48 flex-col gap-0.5 p-1.5">
+                {FORMATS.map((format) => (
+                  <button
+                    key={format}
+                    type="button"
+                    onClick={() => {
+                      onExport(format);
+                      setExportMenu(false);
+                    }}
+                    className="rounded-md px-2.5 py-1.5 text-left text-[12.5px] text-ink hover:bg-secondary"
+                  >
+                    {getFormatLabel(format)}
+                  </button>
+                ))}
+                {activeBranch !== "main" && (
+                  <>
+                    <div className="my-1 h-px bg-line" />
+                    <p className="px-2.5 py-1 text-[10px] text-ink-dim uppercase tracking-wider">
+                      {activeBranch} dalını indir
+                    </p>
+                    {FORMATS.map((format) => (
+                      <button
+                        key={`branch-${format}`}
+                        type="button"
+                        onClick={() => {
+                          onExportBranch(format, activeBranch);
+                          setExportMenu(false);
+                        }}
+                        className="rounded-md px-2.5 py-1.5 text-left text-[12.5px] text-ink hover:bg-secondary"
+                      >
+                        {getFormatLabel(format)}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           <button
             type="button"
-            onClick={onExport}
-            className="flex items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px] text-ink transition-all hover:bg-secondary active:scale-[0.98]"
+            onClick={() => fileImportRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px] text-ink transition-all hover:bg-secondary active:scale-[0.98]"
           >
-            <Download className="h-4 w-4" /> Markdown indir
+            <Upload className="h-4 w-4" /> Dosya aç
           </button>
           <button
             type="button"
             onClick={onReset}
-            className="flex items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px] text-ink-dim transition-all hover:bg-secondary hover:text-destructive active:scale-[0.98]"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px] text-ink-dim transition-all hover:bg-secondary hover:text-destructive active:scale-[0.98]"
           >
             <Trash2 className="h-4 w-4" /> Belgeyi sıfırla
           </button>
         </div>
-
       </aside>
     </>
   );

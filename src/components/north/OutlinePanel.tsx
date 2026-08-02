@@ -1,4 +1,5 @@
-import { GitBranch, Plus, X, FileText } from "lucide-react";
+import { GitBranch, Plus, X, FileText, MoveVertical as MoreVertical, Pencil, Trash2, GitMerge } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 export interface OutlineItem {
   id: string;
@@ -13,10 +14,15 @@ interface OutlinePanelProps {
   activeBranch: string;
   words: number;
   readingMinutes: number;
+  branchMenu: string | null;
   onClose: () => void;
   onJump: (id: string) => void;
   onSwitchBranch: (name: string) => void;
   onNewBranch: () => void;
+  onRenameBranch: (name: string) => void;
+  onDeleteBranch: (name: string) => void;
+  onMergeBranch: (name: string) => void;
+  onToggleBranchMenu: (name: string) => void;
 }
 
 const levelClass: Record<1 | 2 | 3, string> = {
@@ -32,11 +38,27 @@ export function OutlinePanel({
   activeBranch,
   words,
   readingMinutes,
+  branchMenu,
   onClose,
   onJump,
   onSwitchBranch,
   onNewBranch,
+  onRenameBranch,
+  onDeleteBranch,
+  onMergeBranch,
+  onToggleBranchMenu,
 }: OutlinePanelProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!branchMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) onToggleBranchMenu("");
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [branchMenu, onToggleBranchMenu]);
+
   return (
     <>
       {open && (
@@ -87,25 +109,71 @@ export function OutlinePanel({
             {branches.map((name) => {
               const active = name === activeBranch;
               return (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => onSwitchBranch(name)}
-                  className={`flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-ink hover:bg-secondary"
-                  }`}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    {name === "main" ? (
-                      <FileText className="h-3.5 w-3.5 shrink-0" />
-                    ) : (
-                      <GitBranch className="h-3.5 w-3.5 shrink-0" />
-                    )}
-                    <span className="truncate">{name}</span>
-                  </span>
-                </button>
+                <div key={name} className="group relative">
+                  <button
+                    type="button"
+                    onClick={() => onSwitchBranch(name)}
+                    className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] transition-colors ${
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "text-ink hover:bg-secondary"
+                    }`}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      {name === "main" ? (
+                        <FileText className="h-3.5 w-3.5 shrink-0" />
+                      ) : (
+                        <GitBranch className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                      <span className="truncate">{name}</span>
+                    </span>
+                  </button>
+                  {name !== "main" && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleBranchMenu(name);
+                      }}
+                      className={`absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 transition-opacity ${
+                        active
+                          ? "opacity-70 hover:opacity-100"
+                          : "opacity-0 group-hover:opacity-70 hover:opacity-100"
+                      }`}
+                      aria-label="Dal seçenekleri"
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {branchMenu === name && (
+                    <div
+                      ref={menuRef}
+                      className="north-paper absolute left-2 top-9 z-40 flex w-40 flex-col gap-0.5 p-1.5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onRenameBranch(name)}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] text-ink hover:bg-secondary"
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Yeniden adlandır
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onMergeBranch(name)}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] text-ink hover:bg-secondary"
+                      >
+                        <GitMerge className="h-3.5 w-3.5" /> Main'e birleştir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteBranch(name)}
+                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Dalı sil
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

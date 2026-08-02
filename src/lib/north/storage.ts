@@ -7,6 +7,7 @@ export interface Branch {
 }
 
 export interface NorthDoc {
+  id: string;
   title: string;
   activeBranch: string;
   branches: Record<string, Branch>;
@@ -16,13 +17,30 @@ export interface NorthDoc {
   flowEnabled: boolean;
 }
 
-const STORAGE_KEY = "north:doc:v1";
+export interface ApiKeyConfig {
+  provider: string;
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+}
+
+const DOCS_KEY = "north:docs:v2";
+const ACTIVE_KEY = "north:active-doc:v2";
+const API_KEY_STORE = "north:ai-key:v1";
 
 export const WELCOME_HTML = `<h1>North'a Hoş Geldin</h1><p>Bu belge canlı bir taslak. Soldaki panelden dal açabilir, üstten <b>Akış Modu</b>'nu açıp yazmaya devam edebilir, bir kelimeyi seçip bağlantı ekleyebilirsin. Yazdıkların bu cihazda otomatik saklanır.</p><h2>Neden North</h2><p>Klasik bir kelime işlemcinin tüm temel araçları burada: yazı tipleri, başlıklar, listeler, renkler. Üstüne modern bir yazarın ihtiyaç duyduğu katman eklendi.</p><h3>Dene</h3><p>Bir cümle yaz, birkaç saniye dur; ✨ Akış açıksa bir devam önerisi göreceksin. Tab ile kabul et, Esc ile vazgeç.</p>`;
 
-export function createInitialDoc(): NorthDoc {
+let cachedId: string | null = null;
+
+export function generateId(): string {
+  return `doc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function createInitialDoc(title?: string): NorthDoc {
+  cachedId = generateId();
   return {
-    title: "Adsız belge",
+    id: cachedId,
+    title: title ?? "Adsız belge",
     activeBranch: "main",
     branches: { main: { html: WELCOME_HTML, parent: null, createdAt: Date.now() } },
     updatedAt: Date.now(),
@@ -32,27 +50,111 @@ export function createInitialDoc(): NorthDoc {
   };
 }
 
-export function loadDoc(): NorthDoc | null {
-  if (typeof window === "undefined") return null;
+export function createBlankDoc(title?: string): NorthDoc {
+  cachedId = generateId();
+  return {
+    id: cachedId,
+    title: title ?? "Adsız belge",
+    activeBranch: "main",
+    branches: { main: { html: "", parent: null, createdAt: Date.now() } },
+    updatedAt: Date.now(),
+    themeOverride: null,
+    autoTime: true,
+    flowEnabled: false,
+  };
+}
+
+export function loadAllDocs(): Record<string, NorthDoc> {
+  if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<NorthDoc>;
-    if (!parsed.branches || !parsed.activeBranch || !parsed.branches[parsed.activeBranch]) {
-      return null;
-    }
-    return { ...createInitialDoc(), ...parsed } as NorthDoc;
+    const raw = window.localStorage.getItem(DOCS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, NorthDoc>;
+  } catch {
+    return {};
+  }
+}
+
+export function saveAllDocs(docs: Record<string, NorthDoc>): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
+  } catch {
+    /* quota or private mode */
+  }
+}
+
+export function loadDoc(id: string): NorthDoc | null {
+  const docs = loadAllDocs();
+  return docs[id] ?? null;
+}
+
+export function saveDoc(doc: NorthDoc): void {
+  if (typeof window === "undefined") return;
+  const docs = loadAllDocs();
+  docs[doc.id] = { ...doc, updatedAt: Date.now() };
+  saveAllDocs(docs);
+}
+
+export function deleteDoc(id: string): void {
+  if (typeof window === "undefined") return;
+  const docs = loadAllDocs();
+  delete docs[id];
+  saveAllDocs(docs);
+  if (cachedId === id) cachedId = null;
+}
+
+export function getActiveDocId(): string | null {
+  if (typeof window === "undefined") return null;
+  if (cachedId) return cachedId;
+  try {
+    return window.localStorage.getItem(ACTIVE_KEY);
   } catch {
     return null;
   }
 }
 
-export function saveDoc(doc: NorthDoc): void {
+export function setActiveDocId(id: string): void {
+  cachedId = id;
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...doc, updatedAt: Date.now() }));
+    window.localStorage.setItem(ACTIVE_KEY, id);
   } catch {
-    /* quota or private mode — writing is best effort */
+    /* ignore */
+  }
+}
+
+export function listDocs(): NorthDoc[] {
+  const docs = loadAllDocs();
+  return Object.values(docs).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export function loadApiKeyConfig(): ApiKeyConfig | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(API_KEY_STORE);
+    if (!raw) return null;
+    return JSON.parse(raw) as ApiKeyConfig;
+  } catch {
+    return null;
+  }
+}
+
+export function saveApiKeyConfig(config: ApiKeyConfig): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(API_KEY_STORE, JSON.stringify(config));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearApiKeyConfig(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(API_KEY_STORE);
+  } catch {
+    /* ignore */
   }
 }
 

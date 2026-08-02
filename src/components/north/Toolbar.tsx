@@ -1,22 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  List,
-  ListOrdered,
-  Quote,
-  Link2,
-  Sparkles,
-  Code2,
-  Menu,
-  PanelRight,
-  Undo2,
-  Redo2,
-  Check,
-  Loader2,
-} from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Link2, Sparkles, Code as Code2, Menu, PanelRight, Undo2, Redo2, Check, Loader as Loader2, Library, Plus, Key, FileText } from "lucide-react";
 import { THEME_LABELS, type ThemeName } from "@/lib/north/theme";
 
 interface ToolbarProps {
@@ -24,6 +7,14 @@ interface ToolbarProps {
   flowEnabled: boolean;
   mdMode: boolean;
   saved: boolean;
+  hasApiKey: boolean;
+  docTitle: string;
+  editingTitle: boolean;
+  titleDraft: string;
+  onTitleClick: () => void;
+  onTitleChange: (value: string) => void;
+  onTitleSave: () => void;
+  onTitleCancel: () => void;
   onCommand: (command: string, value?: string) => void;
   onBlock: (tag: string) => void;
   onToggleFlow: () => void;
@@ -31,6 +22,9 @@ interface ToolbarProps {
   onLink: () => void;
   onToggleOutline: () => void;
   onToggleSide: () => void;
+  onOpenLibrary: () => void;
+  onCreateNew: () => void;
+  onOpenApiKey: () => void;
 }
 
 const iconButton =
@@ -46,6 +40,14 @@ export function Toolbar({
   flowEnabled,
   mdMode,
   saved,
+  hasApiKey,
+  docTitle,
+  editingTitle,
+  titleDraft,
+  onTitleClick,
+  onTitleChange,
+  onTitleSave,
+  onTitleCancel,
   onCommand,
   onBlock,
   onToggleFlow,
@@ -53,6 +55,9 @@ export function Toolbar({
   onLink,
   onToggleOutline,
   onToggleSide,
+  onOpenLibrary,
+  onCreateNew,
+  onOpenApiKey,
 }: ToolbarProps) {
   const [marks, setMarks] = useState<Record<string, boolean>>({});
   const [block, setBlock] = useState("P");
@@ -79,7 +84,7 @@ export function Toolbar({
 
   return (
     <header className="col-span-full grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-line bg-panel/95 px-2 backdrop-blur-sm sm:px-4">
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
         <button
           type="button"
           onClick={onToggleOutline}
@@ -88,6 +93,24 @@ export function Toolbar({
         >
           <Menu className="h-4.5 w-4.5" />
         </button>
+        <button
+          type="button"
+          onClick={onOpenLibrary}
+          className={`${iconButton} h-9 w-9`}
+          aria-label="Belge kitaplığı"
+          title="Belge kitaplığı"
+        >
+          <Library className="h-4.5 w-4.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onCreateNew}
+          className={`${iconButton} h-9 w-9`}
+          aria-label="Yeni belge"
+          title="Yeni belge"
+        >
+          <Plus className="h-4.5 w-4.5" />
+        </button>
         <div className="hidden items-center gap-2 pr-1 sm:flex">
           <span className="h-2 w-2 shrink-0 rounded-full bg-primary ring-4 ring-primary/20" />
           <span className="font-serif text-[17px] font-bold tracking-wide">North</span>
@@ -95,6 +118,33 @@ export function Toolbar({
       </div>
 
       <div className="north-scroll flex min-w-0 items-center gap-1.5 overflow-x-auto py-2">
+        <div className="north-group hidden shrink-0 lg:flex">
+          {editingTitle ? (
+            <input
+              autoFocus
+              value={titleDraft}
+              onChange={(e) => onTitleChange(e.target.value)}
+              onBlur={onTitleSave}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onTitleSave();
+                if (e.key === "Escape") onTitleCancel();
+              }}
+              className="w-44 rounded-md border border-primary bg-background px-2 py-1 text-[13px] text-ink outline-none"
+              placeholder="Belge başlığı"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={onTitleClick}
+              className="flex max-w-48 items-center gap-1.5 truncate rounded-md px-2 py-1 text-[13px] font-medium text-ink hover:bg-background/70"
+              title="Başlığı düzenle"
+            >
+              <FileText className="h-3.5 w-3.5 shrink-0 text-ink-dim" />
+              <span className="truncate">{docTitle || "Adsız belge"}</span>
+            </button>
+          )}
+        </div>
+
         <div className="north-group">
           <button
             type="button"
@@ -264,11 +314,16 @@ export function Toolbar({
           className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium transition-all active:scale-95 ${
             flowEnabled
               ? "bg-primary text-primary-foreground shadow-sm"
-              : "border border-line text-ink hover:bg-secondary"
+              : hasApiKey
+                ? "border border-line text-ink hover:bg-secondary"
+                : "border border-dashed border-line text-ink-dim hover:bg-secondary"
           }`}
         >
           <Sparkles className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Akış</span>
+          {!hasApiKey && (
+            <Key className="h-3 w-3 opacity-60" />
+          )}
         </button>
       </div>
 
