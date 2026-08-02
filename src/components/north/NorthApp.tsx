@@ -404,35 +404,62 @@ export function NorthApp() {
         onNewBranch={newBranch}
       />
 
-      <main className="north-scroll overflow-y-auto px-4 pt-8 pb-40 sm:px-6">
-        <div className={mdMode ? "mx-auto grid max-w-6xl gap-5 lg:grid-cols-2" : "mx-auto max-w-3xl"}>
+      <div className="flex min-h-0 flex-col">
+        <main className="north-scroll flex-1 overflow-y-auto px-3 py-6 sm:px-6 sm:py-10">
           <div
-            ref={editorRef}
-            contentEditable
-            suppressContentEditableWarning
-            spellCheck
-            role="textbox"
-            aria-multiline="true"
-            aria-label="Belge içeriği"
-            data-placeholder="Yazmaya başla…"
-            onInput={handleInput}
-            onKeyDown={handleKeyDown}
-            onMouseUp={openLinkPopup}
-            onClick={handleEditorClick}
-            onBlur={commitHtml}
-            className="north-prose min-h-[60vh] text-ink outline-none"
-            style={mdMode ? { pointerEvents: "none", opacity: 0.85 } : undefined}
-          />
-          {mdMode && (
-            <textarea
-              value={mdText}
-              onChange={(event) => setMdText(event.target.value)}
-              aria-label="Markdown kaynağı"
-              className="min-h-[60vh] w-full resize-none rounded-lg border border-line bg-panel p-4 font-mono text-[13.5px] leading-relaxed text-ink outline-none focus:border-primary"
+            className={
+              mdMode ? "mx-auto grid max-w-6xl gap-5 lg:grid-cols-2" : "mx-auto max-w-3xl"
+            }
+          >
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              spellCheck
+              role="textbox"
+              aria-multiline="true"
+              aria-label="Belge içeriği"
+              data-placeholder="Yazmaya başla…"
+              onInput={handleInput}
+              onKeyDown={handleKeyDown}
+              onMouseUp={openLinkPopup}
+              onClick={handleEditorClick}
+              onBlur={commitHtml}
+              className="north-paper north-prose min-h-[62vh] px-5 py-7 text-ink outline-none sm:px-10 sm:py-12"
+              style={mdMode ? { pointerEvents: "none", opacity: 0.85 } : undefined}
             />
-          )}
-        </div>
-      </main>
+            {mdMode && (
+              <textarea
+                value={mdText}
+                onChange={(event) => setMdText(event.target.value)}
+                aria-label="Markdown kaynağı"
+                className="north-paper min-h-[62vh] w-full resize-none p-5 font-mono text-[13.5px] leading-relaxed text-ink outline-none focus:border-primary"
+              />
+            )}
+          </div>
+        </main>
+
+        <footer className="flex shrink-0 items-center gap-3 border-t border-line bg-panel/95 px-3 py-2 text-[11.5px] text-ink-dim backdrop-blur-sm sm:px-6">
+          <span className="inline-flex items-center gap-1.5">
+            <GitBranch className="h-3.5 w-3.5 text-primary" />
+            <span className="font-medium text-ink">{activeBranch}</span>
+          </span>
+          <span className="h-3 w-px bg-line" />
+          <span>{words} kelime</span>
+          <span className="hidden sm:inline">· ~{estimateReadingMinutes(words)} dk okuma</span>
+          <span className="ml-auto inline-flex items-center gap-1.5">
+            {doc.flowEnabled && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-primary">
+                <Sparkles className="h-3 w-3" /> akış açık
+              </span>
+            )}
+            <span className={saved ? "text-success" : ""}>
+              {saved ? "kaydedildi" : "kaydediliyor…"}
+            </span>
+          </span>
+        </footer>
+      </div>
+
 
       <SidePanel
         open={sideOpen}
