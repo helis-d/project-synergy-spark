@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Sparkles } from "lucide-react";
+import { GitBranch, Sparkles } from "lucide-react";
 import { Toolbar } from "./Toolbar";
 import { OutlinePanel, type OutlineItem } from "./OutlinePanel";
 import { SidePanel } from "./SidePanel";
