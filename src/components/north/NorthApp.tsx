@@ -489,7 +489,7 @@ export function NorthApp() {
       />
 
       {(flowState === "ready" || flowState === "loading" || flowState === "error") && (
-        <div className="pointer-events-none fixed bottom-5 left-1/2 z-40 flex max-w-[92vw] -translate-x-1/2 items-center gap-2.5 rounded-full border border-line bg-panel px-4 py-2 text-[12.5px] text-ink-dim shadow-panel">
+        <div className="pointer-events-none north-rise fixed bottom-14 left-1/2 z-40 flex max-w-[92vw] -translate-x-1/2 items-center gap-2.5 rounded-full border border-line bg-panel px-4 py-2 text-[12.5px] text-ink-dim shadow-panel">
           <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
           {flowState === "loading" && <span>öneri hazırlanıyor…</span>}
           {flowState === "error" && <span>{flowMessage}</span>}
