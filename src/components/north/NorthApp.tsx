@@ -137,14 +137,28 @@ export function NorthApp() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [activeDoc, view]);
 
+  useEffect(() => {
+    const desktop = window.northDesktop;
+    if (!desktop) return;
+    desktop.onCloseRequested(() => {
+      if (activeDoc && view === "editor") {
+        setExitDialog(true);
+      } else {
+        desktop.closeWindow();
+      }
+    });
+  }, [activeDoc, view]);
+
   const handleExitConfirm = useCallback(() => {
     setExitDialog(false);
     setView("library");
+    window.northDesktop?.closeWindow();
   }, []);
 
   const handleExitCancel = useCallback(() => {
     setExitDialog(false);
     setView("library");
+    window.northDesktop?.closeWindow();
   }, []);
 
   if (view === "library" || !activeDoc) {

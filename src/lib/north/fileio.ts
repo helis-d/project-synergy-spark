@@ -44,6 +44,12 @@ function sanitizeFilename(name: string): string {
 }
 
 function download(content: string, filename: string, mime: string): void {
+  const desktop = window.northDesktop;
+  if (desktop?.isDesktop) {
+    const ext = filename.split(".").pop() ?? "txt";
+    void desktop.saveFile(content, filename, [ext]);
+    return;
+  }
   const blob = new Blob([content], { type: `${mime};charset=utf-8` });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
