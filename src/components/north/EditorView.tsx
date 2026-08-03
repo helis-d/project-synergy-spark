@@ -14,7 +14,6 @@ import {
 } from "@/lib/north/markdown";
 import {
   saveDoc,
-  loadApiKeyConfig,
   loadApiKeyConfigAsync,
   saveApiKeyConfigAsync,
   clearApiKeyConfigAsync,
