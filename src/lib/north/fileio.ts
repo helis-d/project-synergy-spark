@@ -1,6 +1,7 @@
 import type { NorthDoc } from "./storage";
 import { generateId, createBlankDoc } from "./storage";
 import { htmlToMarkdown, markdownToHtml } from "./markdown";
+import { sanitizeHtml, sanitizeBranches } from "./sanitize";
 
 export type ExportFormat = "nh" | "md" | "html" | "txt";
 
@@ -37,6 +38,10 @@ function sanitizeFilename(name: string): string {
   return (
     name
       .trim()
+      // Control characters are intentionally matched: filenames must not carry
+      // NUL/C0 bytes, which some filesystems and the Electron save dialog
+      // reject or truncate at.
+      // eslint-disable-next-line no-control-regex
       .replace(/[<>:"/\\|?*\x00-\x1f]/g, "")
       .replace(/\s+/g, "-")
       .slice(0, 80) || "north-belge"
@@ -84,7 +89,7 @@ export function exportDoc(doc: NorthDoc, format: ExportFormat): void {
     }
     case "md": {
       const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = html;
+      tempDiv.innerHTML = sanitizeHtml(html);
       download(htmlToMarkdown(tempDiv), `${base}.md`, "text/markdown");
       break;
     }
@@ -94,7 +99,7 @@ export function exportDoc(doc: NorthDoc, format: ExportFormat): void {
     }
     case "txt": {
       const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = html;
+      tempDiv.innerHTML = sanitizeHtml(html);
       download(tempDiv.innerText, `${base}.txt`, "text/plain");
       break;
     }
@@ -127,7 +132,7 @@ export function exportBranch(doc: NorthDoc, branchName: string, format: ExportFo
     }
     case "md": {
       const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = html;
+      tempDiv.innerHTML = sanitizeHtml(html);
       download(htmlToMarkdown(tempDiv), `${base}.md`, "text/markdown");
       break;
     }
@@ -137,7 +142,7 @@ export function exportBranch(doc: NorthDoc, branchName: string, format: ExportFo
     }
     case "txt": {
       const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = html;
+      tempDiv.innerHTML = sanitizeHtml(html);
       download(tempDiv.innerText, `${base}.txt`, "text/plain");
       break;
     }
@@ -160,7 +165,8 @@ export function importFromFile(file: File): Promise<NorthDoc> {
               id: generateId(),
               title: d.title || file.name.replace(/\.[^.]+$/, ""),
               activeBranch: d.activeBranch || "main",
-              branches: d.branches,
+              // Untrusted file: every branch body is sanitized before storage.
+              branches: sanitizeBranches(d.branches),
               updatedAt: Date.now(),
               themeOverride: d.themeOverride ?? null,
               autoTime: d.autoTime ?? true,
@@ -176,7 +182,9 @@ export function importFromFile(file: File): Promise<NorthDoc> {
       if (ext === "md" || ext === "markdown") {
         resolve({
           ...createBlankDoc(file.name.replace(/\.[^.]+$/, "")),
-          branches: { main: { html: markdownToHtml(text), parent: null, createdAt: Date.now() } },
+          branches: {
+            main: { html: sanitizeHtml(markdownToHtml(text)), parent: null, createdAt: Date.now() },
+          },
         });
         return;
       }
@@ -184,7 +192,9 @@ export function importFromFile(file: File): Promise<NorthDoc> {
       if (ext === "html" || ext === "htm") {
         resolve({
           ...createBlankDoc(file.name.replace(/\.[^.]+$/, "")),
-          branches: { main: { html: text, parent: null, createdAt: Date.now() } },
+          branches: {
+            main: { html: sanitizeHtml(text), parent: null, createdAt: Date.now() },
+          },
         });
         return;
       }

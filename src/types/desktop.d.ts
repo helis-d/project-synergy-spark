@@ -7,6 +7,9 @@ declare global {
     saveFile: (content: string, defaultName: string, extensions: string[]) => Promise<boolean>;
     closeWindow: () => void;
     onCloseRequested: (callback: () => void) => void;
+    getSecret: (name: string) => Promise<string | null>;
+    setSecret: (name: string, value: string) => Promise<boolean>;
+    deleteSecret: (name: string) => Promise<boolean>;
   }
 
   interface Window {
