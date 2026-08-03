@@ -106,7 +106,7 @@
       "electron/main.cjs",
       "electron/preload.cjs",
       "electron/server-wrapper.cjs",
-      ".output/**/*",
+      "dist/**/*",
       "package.json"
     ],
     "mac": {
@@ -130,6 +130,7 @@
       "icon": "public/north-icon-512.png"
     },
     "asarUnpack": [
+      "dist/**",
       ".output/**"
     ]
   }

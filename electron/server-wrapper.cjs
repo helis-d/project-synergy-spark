@@ -80,11 +80,45 @@ async function findFreePort(start = 3000) {
  * @param preferredPort port to bind, or 0/undefined to pick a free one
  * @param baseDir directory that contains `.output` (app bundle root)
  */
+function resolveOutput(root) {
+  // Nitro 3 emits `dist/` (publicDir `client/`); older presets emitted
+  // `.output/` (publicDir `public/`). Support both, and prefer nitro.json
+  // when present so the layout is read from the build itself.
+  const candidates = [
+    { dir: path.join(root, "dir"), skip: true },
+    { dir: path.join(root, "dist"), publicName: "client" },
+    { dir: path.join(root, ".output"), publicName: "public" },
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate.skip) continue;
+    const meta = path.join(candidate.dir, "nitro.json");
+    let publicName = candidate.publicName;
+    let serverEntry = path.join("server", "index.mjs");
+    if (fs.existsSync(meta)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(meta, "utf-8"));
+        if (parsed.publicDir) publicName = parsed.publicDir;
+        if (parsed.serverEntry) serverEntry = parsed.serverEntry;
+      } catch {
+        /* fall back to defaults */
+      }
+    }
+    const serverPath = path.join(candidate.dir, serverEntry);
+    if (fs.existsSync(serverPath)) {
+      return { publicDir: path.join(candidate.dir, publicName), serverPath };
+    }
+  }
+  return null;
+}
+
 async function startNorthServer(preferredPort, baseDir) {
   const root = baseDir || process.cwd();
-  const outputDir = path.join(root, ".output");
-  const publicDir = path.join(outputDir, "public");
-  const serverPath = path.join(outputDir, "server", "index.mjs");
+  const resolved = resolveOutput(root);
+  if (!resolved) {
+    throw new Error(`No Nitro build output found under ${root} (looked for dist/ and .output/)`);
+  }
+  const { publicDir, serverPath } = resolved;
 
   const serverModule = await import(`file://${serverPath}`);
   const handler = serverModule.default || serverModule;
@@ -158,4 +192,4 @@ function readBody(req) {
   });
 }
 
-module.exports = { startNorthServer, resolveStaticFile, contentTypeFor };
+module.exports = { startNorthServer, resolveStaticFile, contentTypeFor, resolveOutput };
