@@ -10,9 +10,12 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "electron:dev": "vite build && electron electron/main.cjs",
+    "electron:dev": "NORTH_DEV_URL=http://localhost:3000 concurrently -k \"vite dev --port 3000\" \"wait-on tcp:3000 && electron electron/main.cjs\"",
     "electron:build": "vite build && electron-builder",
-    "electron:start": "electron electron/main.cjs"
+    "electron:start": "electron electron/main.cjs",
+    "electron:preview": "vite build && electron electron/main.cjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -125,6 +128,9 @@
       ],
       "category": "Office",
       "icon": "public/north-icon-512.png"
-    }
+    },
+    "asarUnpack": [
+      ".output/**"
+    ]
   }
 }

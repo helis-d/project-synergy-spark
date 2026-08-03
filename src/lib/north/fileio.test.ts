@@ -40,6 +40,6 @@ describe("importFromFile", () => {
 
   it("escapes a plain text import", async () => {
     const doc = await importFromFile(makeFile("note.txt", "<script>alert(1)</script>"));
-    expect(doc.branches.main.html.toLowerCase()).not.toContain("<script");
+    expect((doc.branches['main']?.html ?? '').toLowerCase()).not.toContain("<script");
   });
 });
