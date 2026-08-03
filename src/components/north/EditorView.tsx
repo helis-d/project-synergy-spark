@@ -15,8 +15,9 @@ import {
 import {
   saveDoc,
   loadApiKeyConfig,
-  saveApiKeyConfig,
-  clearApiKeyConfig,
+  loadApiKeyConfigAsync,
+  saveApiKeyConfigAsync,
+  clearApiKeyConfigAsync,
   type NorthDoc,
   type ApiKeyConfig,
 } from "@/lib/north/storage";
@@ -24,6 +25,7 @@ import { useTimeTheme } from "@/lib/north/useTimeTheme";
 import { useDictation } from "@/lib/north/useDictation";
 import { getFlowSuggestion } from "@/lib/north/flow.functions";
 import { exportDoc, exportBranch, importFromFile, type ExportFormat } from "@/lib/north/fileio";
+import { sanitizeHtml } from "@/lib/north/sanitize";
 
 const GHOST_CLASS = "north-ghost";
 
@@ -70,7 +72,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const currentHtml = doc.branches[activeBranch]?.html ?? "";
 
   useEffect(() => {
-    setApiKeyConfig(loadApiKeyConfig());
+    void loadApiKeyConfigAsync().then(setApiKeyConfig);
   }, []);
 
   useEffect(() => {
@@ -79,7 +81,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
 
   useEffect(() => {
     if (!editorRef.current) return;
-    editorRef.current.innerHTML = currentHtml;
+    editorRef.current.innerHTML = sanitizeHtml(currentHtml);
     refreshDerived();
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -87,7 +89,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
 
   useEffect(() => {
     if (!hydrated || !editorRef.current) return;
-    editorRef.current.innerHTML = currentHtml;
+    editorRef.current.innerHTML = sanitizeHtml(currentHtml);
     refreshDerived();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBranch]);
@@ -165,15 +167,15 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
     if (flowTimer.current) window.clearTimeout(flowTimer.current);
     removeGhost();
     if (!doc.flowEnabled) return;
-    const keyConfig = loadApiKeyConfig();
-    if (!keyConfig) {
-      setFlowState("error");
-      setFlowMessage("AI anahtarı gerekli — yan panelden ekle.");
-      return;
-    }
     flowTimer.current = window.setTimeout(async () => {
       const editor = editorRef.current;
       if (!editor) return;
+      const keyConfig = apiKeyConfig ?? (await loadApiKeyConfigAsync());
+      if (!keyConfig) {
+        setFlowState("error");
+        setFlowMessage("AI anahtarı gerekli — yan panelden ekle.");
+        return;
+      }
       const text = (editor.innerText ?? "").trim();
       if (text.length < 20) return;
       setFlowState("loading");
@@ -198,7 +200,9 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
                   ? "AI anahtarı geçersiz."
                   : result.error === "no_key"
                     ? "AI anahtarı gerekli."
-                    : "Öneri alınamadı.",
+                    : result.error === "blocked_host"
+                      ? "Bu sunucu adresine izin verilmiyor. Yalnızca OpenRouter, OpenAI, Groq ve DeepSeek adresleri kullanılabilir."
+                      : "Öneri alınamadı.",
           );
           return;
         }
@@ -422,7 +426,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
       setMdText(htmlToMarkdown(editor));
       setMdMode(true);
     } else {
-      editor.innerHTML = markdownToHtml(mdText);
+      editor.innerHTML = sanitizeHtml(markdownToHtml(mdText));
       setMdMode(false);
       refreshDerived();
       commitHtml();
@@ -491,12 +495,12 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   }, [doc, onChange, titleDraft]);
 
   const handleSaveApiKey = useCallback((config: ApiKeyConfig) => {
-    saveApiKeyConfig(config);
+    void saveApiKeyConfigAsync(config);
     setApiKeyConfig(config);
   }, []);
 
   const handleClearApiKey = useCallback(() => {
-    clearApiKeyConfig();
+    void clearApiKeyConfigAsync();
     setApiKeyConfig(null);
   }, []);
 

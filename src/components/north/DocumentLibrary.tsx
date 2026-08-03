@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { FileText, Plus, Trash2, Upload, Clock, X, Search } from "lucide-react";
 import type { NorthDoc } from "@/lib/north/storage";
 import { countWords } from "@/lib/north/markdown";
+import { sanitizeHtml } from "@/lib/north/sanitize";
 
 interface DocumentLibraryProps {
   docs: NorthDoc[];
@@ -27,7 +28,7 @@ function formatRelative(ts: number): string {
 
 function previewText(html: string): string {
   const div = document.createElement("div");
-  div.innerHTML = html;
+  div.innerHTML = sanitizeHtml(html);
   return (div.innerText ?? "").replace(/\s+/g, " ").trim();
 }
 
