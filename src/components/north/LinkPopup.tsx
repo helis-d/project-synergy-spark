@@ -36,8 +36,10 @@ export function LinkPopup({ position, headings, onApply, onClose }: LinkPopupPro
 
   if (!position) return null;
 
-  const left = Math.min(Math.max(12, position.x), Math.max(12, window.innerWidth - 260));
-  const top = Math.min(position.y, window.innerHeight - 180);
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 768;
+  const left = Math.min(Math.max(12, position.x), Math.max(12, vw - 260));
+  const top = Math.min(position.y, vh - 180);
 
   return (
     <div

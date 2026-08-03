@@ -27,6 +27,9 @@ function formatRelative(ts: number): string {
 }
 
 function previewText(html: string): string {
+  if (typeof document === "undefined") {
+    return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+  }
   const div = document.createElement("div");
   div.innerHTML = sanitizeHtml(html);
   return (div.innerText ?? "").replace(/\s+/g, " ").trim();

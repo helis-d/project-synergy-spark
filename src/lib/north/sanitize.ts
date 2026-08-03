@@ -76,6 +76,7 @@ export function sanitizeHtml(html: string): string {
  * DOMPurify's default URI policy, and we restrict `style` to `<span>` only.
  */
 function stripUnsafeAttributes(html: string): string {
+  if (typeof document === "undefined") return html;
   const host = document.createElement("div");
   host.innerHTML = html;
 
