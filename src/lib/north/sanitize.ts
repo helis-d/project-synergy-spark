@@ -91,6 +91,9 @@ function stripUnsafeAttributes(html: string): string {
         continue;
       }
       if (name === "href") {
+        // Control/whitespace bytes are stripped so "java\tscript:" style
+        // obfuscation cannot slip past the scheme check below.
+        // eslint-disable-next-line no-control-regex
         const value = attr.value.trim().replace(/[\u0000-\u0020]/g, "");
         if (/^(javascript|data|vbscript):/i.test(value)) {
           el.removeAttribute(attr.name);
