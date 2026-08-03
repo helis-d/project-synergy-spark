@@ -116,7 +116,8 @@ export function markdownToHtml(markdown: string): string {
       if (block.startsWith("### ")) return `<h3>${inlineMdToHtml(block.slice(4))}</h3>`;
       if (block.startsWith("## ")) return `<h2>${inlineMdToHtml(block.slice(3))}</h2>`;
       if (block.startsWith("# ")) return `<h1>${inlineMdToHtml(block.slice(2))}</h1>`;
-      if (block.startsWith("> ")) return `<blockquote>${inlineMdToHtml(block.slice(2))}</blockquote>`;
+      if (block.startsWith("> "))
+        return `<blockquote>${inlineMdToHtml(block.slice(2))}</blockquote>`;
       if (/^- /m.test(block) && block.split("\n").every((l) => l.trim().startsWith("- "))) {
         return `<ul>${block
           .split("\n")

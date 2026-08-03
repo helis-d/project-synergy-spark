@@ -149,6 +149,53 @@ export function saveApiKeyConfig(config: ApiKeyConfig): void {
   }
 }
 
+/**
+ * Desktop builds keep the AI key in electron `safeStorage` (encrypted at rest)
+ * instead of localStorage, so an XSS in the renderer cannot read it directly.
+ * The localStorage path remains the web fallback.
+ */
+export async function loadApiKeyConfigAsync(): Promise<ApiKeyConfig | null> {
+  if (typeof window === "undefined") return null;
+  const desktop = window.northDesktop;
+  if (desktop?.isDesktop) {
+    try {
+      const raw = await desktop.getSecret(API_KEY_STORE);
+      return raw ? (JSON.parse(raw) as ApiKeyConfig) : null;
+    } catch {
+      return null;
+    }
+  }
+  return loadApiKeyConfig();
+}
+
+export async function saveApiKeyConfigAsync(config: ApiKeyConfig): Promise<void> {
+  if (typeof window === "undefined") return;
+  const desktop = window.northDesktop;
+  if (desktop?.isDesktop) {
+    try {
+      await desktop.setSecret(API_KEY_STORE, JSON.stringify(config));
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+  saveApiKeyConfig(config);
+}
+
+export async function clearApiKeyConfigAsync(): Promise<void> {
+  if (typeof window === "undefined") return;
+  const desktop = window.northDesktop;
+  if (desktop?.isDesktop) {
+    try {
+      await desktop.deleteSecret(API_KEY_STORE);
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+  clearApiKeyConfig();
+}
+
 export function clearApiKeyConfig(): void {
   if (typeof window === "undefined") return;
   try {

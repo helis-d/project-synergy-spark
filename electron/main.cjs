@@ -1,7 +1,10 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require("electron");
 const path = require("node:path");
 
-const isDev = !app.isPackaged;
+// Dev mode means "load from the Vite dev server". `electron:preview` runs
+// unpackaged but without NORTH_DEV_URL so it exercises the production
+// server-wrapper path (static assets from .output/public + Nitro SSR).
+const isDev = !app.isPackaged && Boolean(process.env.NORTH_DEV_URL);
 let mainWindow = null;
 let allowClose = false;
 let serverPort = 3147;
@@ -45,7 +48,7 @@ async function createWindow() {
   });
 
   if (isDev) {
-    const devUrl = process.env.NORTH_DEV_URL || "http://localhost:3000";
+    const devUrl = process.env.NORTH_DEV_URL;
     await mainWindow.loadURL(devUrl);
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
@@ -57,7 +60,10 @@ app.whenReady().then(async () => {
   if (!isDev) {
     try {
       const { startNorthServer } = require("./server-wrapper.cjs");
-      serverPort = await startNorthServer(0);
+      // In a packaged app process.cwd() is the launch directory, not the app
+      // bundle, so the .output location must be derived from Electron paths.
+      const baseDir = app.isPackaged ? process.resourcesPath : app.getAppPath();
+      serverPort = await startNorthServer(0, baseDir);
     } catch (err) {
       console.error("Failed to start North server:", err);
     }
@@ -99,6 +105,53 @@ ipcMain.handle("north:save-file", async (event, { content, defaultName, extensio
 
   const { writeFile } = require("node:fs/promises");
   await writeFile(result.filePath, content, "utf-8");
+  return true;
+});
+
+/* --- IPC: encrypted secret storage (AI API key) --- */
+const secretsFile = () => path.join(app.getPath("userData"), "north-secrets.json");
+
+function readSecretStore() {
+  try {
+    return JSON.parse(require("node:fs").readFileSync(secretsFile(), "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeSecretStore(store) {
+  require("node:fs").writeFileSync(secretsFile(), JSON.stringify(store), "utf-8");
+}
+
+ipcMain.handle("north:get-secret", (event, { name }) => {
+  const store = readSecretStore();
+  const entry = store[name];
+  if (!entry) return null;
+  try {
+    if (entry.encrypted && safeStorage.isEncryptionAvailable()) {
+      return safeStorage.decryptString(Buffer.from(entry.value, "base64"));
+    }
+    return entry.encrypted ? null : entry.value;
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle("north:set-secret", (event, { name, value }) => {
+  const store = readSecretStore();
+  if (safeStorage.isEncryptionAvailable()) {
+    store[name] = { encrypted: true, value: safeStorage.encryptString(value).toString("base64") };
+  } else {
+    store[name] = { encrypted: false, value };
+  }
+  writeSecretStore(store);
+  return true;
+});
+
+ipcMain.handle("north:delete-secret", (event, { name }) => {
+  const store = readSecretStore();
+  delete store[name];
+  writeSecretStore(store);
   return true;
 });
 

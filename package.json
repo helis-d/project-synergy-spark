@@ -10,9 +10,12 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "electron:dev": "vite build && electron electron/main.cjs",
+    "electron:dev": "node electron/dev.cjs",
     "electron:build": "vite build && electron-builder",
-    "electron:start": "electron electron/main.cjs"
+    "electron:start": "electron electron/main.cjs",
+    "electron:preview": "vite build && electron electron/main.cjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -51,6 +54,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "dompurify": "^3.4.12",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
@@ -71,6 +75,7 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "^2.8.5",
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
@@ -83,11 +88,13 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "jsdom": "^29.1.1",
     "nitro": "3.0.260603-beta",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.1.5"
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
   },
   "build": {
     "appId": "dev.north.editor",
@@ -99,7 +106,7 @@
       "electron/main.cjs",
       "electron/preload.cjs",
       "electron/server-wrapper.cjs",
-      ".output/**/*",
+      "dist/**/*",
       "package.json"
     ],
     "mac": {
@@ -121,6 +128,10 @@
       ],
       "category": "Office",
       "icon": "public/north-icon-512.png"
-    }
+    },
+    "asarUnpack": [
+      "dist/**",
+      ".output/**"
+    ]
   }
 }

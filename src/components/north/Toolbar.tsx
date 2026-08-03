@@ -1,5 +1,26 @@
 import { useEffect, useState } from "react";
-import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Link2, Sparkles, Code as Code2, Menu, PanelRight, Undo2, Redo2, Check, Loader as Loader2, Library, Plus, Key, FileText } from "lucide-react";
+import {
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Quote,
+  Link2,
+  Sparkles,
+  Code as Code2,
+  Menu,
+  PanelRight,
+  Undo2,
+  Redo2,
+  Check,
+  Loader as Loader2,
+  Library,
+  Plus,
+  Key,
+  FileText,
+} from "lucide-react";
 import { THEME_LABELS, type ThemeName } from "@/lib/north/theme";
 
 interface ToolbarProps {
@@ -277,7 +298,11 @@ export function Toolbar({
             <option value="sans">Sans</option>
             <option value="mono">Mono</option>
           </select>
-          <label className={`${iconButton} cursor-pointer`} aria-label="Metin rengi" title="Metin rengi">
+          <label
+            className={`${iconButton} cursor-pointer`}
+            aria-label="Metin rengi"
+            title="Metin rengi"
+          >
             <span className="h-4 w-4 rounded-full border border-line bg-linear-to-br from-primary to-accent" />
             <input
               type="color"
@@ -321,9 +346,7 @@ export function Toolbar({
         >
           <Sparkles className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Akış</span>
-          {!hasApiKey && (
-            <Key className="h-3 w-3 opacity-60" />
-          )}
+          {!hasApiKey && <Key className="h-3 w-3 opacity-60" />}
         </button>
       </div>
 
