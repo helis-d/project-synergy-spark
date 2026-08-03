@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Key, X, Check, Trash2, ExternalLink } from "lucide-react";
 import type { ApiKeyConfig } from "@/lib/north/storage";
+import { ALLOWED_AI_HOSTS, isAllowedAiBaseUrl } from "@/lib/north/ai-hosts";
 
 interface ApiKeyDialogProps {
   open: boolean;
@@ -15,7 +16,6 @@ const PRESETS = [
   { provider: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
   { provider: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
   { provider: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
-  { provider: "OpenAI uyumlu", baseUrl: "https://", model: "gpt-4o-mini" },
 ];
 
 export function ApiKeyDialog({ open, config, onSave, onClear, onClose }: ApiKeyDialogProps) {
@@ -52,8 +52,10 @@ export function ApiKeyDialog({ open, config, onSave, onClear, onClose }: ApiKeyD
     setModel(preset.model);
   };
 
+  const urlAllowed = isAllowedAiBaseUrl(baseUrl.trim());
+
   const handleSave = () => {
-    if (!apiKey.trim()) return;
+    if (!apiKey.trim() || !urlAllowed) return;
     onSave({ provider, apiKey: apiKey.trim(), baseUrl: baseUrl.trim(), model: model.trim() });
     setSaved(true);
     setTimeout(() => onClose(), 600);
@@ -76,9 +78,17 @@ export function ApiKeyDialog({ open, config, onSave, onClear, onClose }: ApiKeyD
           </button>
         </div>
 
-        <p className="mb-4 text-[13px] leading-relaxed text-ink-dim">
-          Akış Modu için bir AI sağlayıcı API anahtarı gerekir. Anahtar yalnızca bu cihazda saklanır ve
-          sunucu üzerinden güvenli şekilde iletilir.
+        <p className="mb-2 text-[13px] leading-relaxed text-ink-dim">
+          Akış Modu için bir AI sağlayıcı API anahtarı gerekir. Anahtar bu cihazda saklanır (masaüstü
+          uygulamasında şifrelenerek, tarayıcıda bu tarayıcının yerel deposunda) ve{" "}
+          <strong className="font-semibold text-ink">
+            her öneri isteğinde North sunucusuna gönderilir
+          </strong>
+          ; istek sunucudan sağlayıcıya iletilir. Yani anahtar cihazdan hiç çıkmıyor değil — North
+          sunucusu üzerinden geçer.
+        </p>
+        <p className="mb-4 text-[12px] leading-relaxed text-ink-dim">
+          Güvenlik nedeniyle yalnızca şu sunucular kullanılabilir: {ALLOWED_AI_HOSTS.join(", ")}.
         </p>
 
         <div className="mb-3 flex flex-wrap gap-1.5">
@@ -119,6 +129,12 @@ export function ApiKeyDialog({ open, config, onSave, onClear, onClose }: ApiKeyD
               placeholder="https://..."
               className="rounded-lg border border-line bg-background px-3 py-2.5 text-sm text-ink outline-none focus:border-primary"
             />
+            {!urlAllowed && baseUrl.trim().length > 0 && (
+              <span className="text-[11.5px] text-destructive">
+                Bu adrese izin verilmiyor. https:// ile başlamalı ve şu sunuculardan biri olmalı:{" "}
+                {ALLOWED_AI_HOSTS.join(", ")}.
+              </span>
+            )}
           </label>
 
           <label className="flex flex-col gap-1.5">
@@ -161,7 +177,7 @@ export function ApiKeyDialog({ open, config, onSave, onClear, onClose }: ApiKeyD
           <button
             type="button"
             onClick={handleSave}
-            disabled={!apiKey.trim()}
+            disabled={!apiKey.trim() || !urlAllowed}
             className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saved ? (
