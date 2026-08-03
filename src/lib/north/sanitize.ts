@@ -41,7 +41,10 @@ const FORBID_TAGS = ["script", "iframe", "object", "embed", "svg", "img", "style
 export function sanitizeHtml(html: string): string {
   if (!html) return "";
 
-  if (typeof window === "undefined" || typeof (globalThis as { document?: unknown }).document === "undefined") {
+  if (
+    typeof window === "undefined" ||
+    typeof (globalThis as { document?: unknown }).document === "undefined"
+  ) {
     // No DOM available (SSR): fall back to stripping every tag so nothing
     // dangerous can round-trip through the server render.
     return html.replace(/<[^>]*>/g, "");

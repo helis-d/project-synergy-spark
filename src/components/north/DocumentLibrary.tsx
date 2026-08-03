@@ -111,7 +111,9 @@ export function DocumentLibrary({
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line py-16 text-center">
             <FileText className="h-10 w-10 text-ink-dim opacity-50" />
             <p className="text-sm text-ink-dim">
-              {query.trim() ? "Aramanla eşleşen belge yok." : "Henüz belge yok. Yeni bir belge oluştur veya dosya aç."}
+              {query.trim()
+                ? "Aramanla eşleşen belge yok."
+                : "Henüz belge yok. Yeni bir belge oluştur veya dosya aç."}
             </p>
           </div>
         ) : (

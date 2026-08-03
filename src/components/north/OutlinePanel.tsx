@@ -1,4 +1,13 @@
-import { GitBranch, Plus, X, FileText, MoveVertical as MoreVertical, Pencil, Trash2, GitMerge } from "lucide-react";
+import {
+  GitBranch,
+  Plus,
+  X,
+  FileText,
+  MoveVertical as MoreVertical,
+  Pencil,
+  Trash2,
+  GitMerge,
+} from "lucide-react";
 import { useEffect, useRef } from "react";
 
 export interface OutlineItem {
@@ -114,9 +123,7 @@ export function OutlinePanel({
                     type="button"
                     onClick={() => onSwitchBranch(name)}
                     className={`flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] transition-colors ${
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "text-ink hover:bg-secondary"
+                      active ? "bg-primary text-primary-foreground" : "text-ink hover:bg-secondary"
                     }`}
                   >
                     <span className="flex min-w-0 items-center gap-2">

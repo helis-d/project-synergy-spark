@@ -274,7 +274,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
       document.execCommand(command, false, value);
       handleInput();
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [handleInput],
   );
 
@@ -289,7 +289,8 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
 
   const openLinkPopup = useCallback(() => {
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0 || selection.toString().trim().length === 0) return;
+    if (!selection || selection.rangeCount === 0 || selection.toString().trim().length === 0)
+      return;
     const range = selection.getRangeAt(0);
     savedRange.current = range.cloneRange();
     const rect = range.getBoundingClientRect();
@@ -387,7 +388,8 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const mergeBranch = useCallback(
     (name: string) => {
       if (name === "main" || name === doc.activeBranch) return;
-      if (!window.confirm(`"${name}" dalını "main" dalına birleştirmek istediğine emin misin?`)) return;
+      if (!window.confirm(`"${name}" dalını "main" dalına birleştirmek istediğine emin misin?`))
+        return;
       const branchHtml = doc.branches[name]?.html ?? "";
       onChange({
         ...doc,
@@ -565,9 +567,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
       <div className="flex min-h-0 flex-col">
         <main className="north-scroll flex-1 overflow-y-auto px-3 py-6 sm:px-6 sm:py-10">
           <div
-            className={
-              mdMode ? "mx-auto grid max-w-6xl gap-5 lg:grid-cols-2" : "mx-auto max-w-3xl"
-            }
+            className={mdMode ? "mx-auto grid max-w-6xl gap-5 lg:grid-cols-2" : "mx-auto max-w-3xl"}
           >
             <div
               ref={editorRef}
@@ -689,8 +689,8 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
           )}
           {flowState === "ready" && (
             <span className="truncate">
-              öneri hazır · <kbd className="rounded bg-secondary px-1.5 py-0.5 text-[11px]">Tab</kbd>{" "}
-              kabul ·{" "}
+              öneri hazır ·{" "}
+              <kbd className="rounded bg-secondary px-1.5 py-0.5 text-[11px]">Tab</kbd> kabul ·{" "}
               <kbd className="rounded bg-secondary px-1.5 py-0.5 text-[11px]">Esc</kbd> vazgeç
             </span>
           )}

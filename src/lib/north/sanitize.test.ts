@@ -48,7 +48,7 @@ describe("sanitizeHtml", () => {
       main: { html: "<script>alert(1)</script><p>ok</p>" },
       alt: { html: '<img src=x onerror="alert(1)">' },
     });
-    expect((out['main']?.html ?? '').toLowerCase()).not.toContain("<script");
-    expect((out['alt']?.html ?? '')).not.toContain("onerror");
+    expect((out["main"]?.html ?? "").toLowerCase()).not.toContain("<script");
+    expect(out["alt"]?.html ?? "").not.toContain("onerror");
   });
 });

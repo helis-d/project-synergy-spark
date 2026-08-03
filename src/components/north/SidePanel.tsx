@@ -1,15 +1,5 @@
 import { type RefObject } from "react";
-import {
-  Mic,
-  Square,
-  X,
-  Clock,
-  Trash2,
-  Upload,
-  Key,
-  FileDown,
-  ChevronDown,
-} from "lucide-react";
+import { Mic, Square, X, Clock, Trash2, Upload, Key, FileDown, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { THEME_LABELS, formatHour, type ThemeName } from "@/lib/north/theme";
 import type { ExportFormat } from "@/lib/north/fileio";
@@ -150,8 +140,7 @@ export function SidePanel({
           <span className="rounded bg-secondary px-1.5 py-0.5 font-medium text-ink">
             {activeBranch}
           </span>
-          ↔
-          <span className="rounded bg-secondary px-1.5 py-0.5">main</span>
+          ↔<span className="rounded bg-secondary px-1.5 py-0.5">main</span>
         </p>
         <div className="north-card p-2.5 font-mono text-[12.5px] leading-relaxed break-words">
           {!diff ? (
@@ -223,7 +212,9 @@ export function SidePanel({
             <Key className={`h-4 w-4 ${hasApiKey ? "text-success" : ""}`} />
             {hasApiKey ? "AI anahtarı tanımlı" : "AI anahtarı ekle"}
           </span>
-          <span className={`h-2 w-2 rounded-full ${hasApiKey ? "bg-success" : "bg-muted-foreground/40"}`} />
+          <span
+            className={`h-2 w-2 rounded-full ${hasApiKey ? "bg-success" : "bg-muted-foreground/40"}`}
+          />
         </button>
 
         <h2 className="mt-6 mb-2 text-[11px] tracking-widest text-ink-dim uppercase">Belge</h2>

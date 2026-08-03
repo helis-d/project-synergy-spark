@@ -1,7 +1,10 @@
 const { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } = require("electron");
 const path = require("node:path");
 
-const isDev = !app.isPackaged;
+// Dev mode means "load from the Vite dev server". `electron:preview` runs
+// unpackaged but without NORTH_DEV_URL so it exercises the production
+// server-wrapper path (static assets from .output/public + Nitro SSR).
+const isDev = !app.isPackaged && Boolean(process.env.NORTH_DEV_URL);
 let mainWindow = null;
 let allowClose = false;
 let serverPort = 3147;
@@ -45,7 +48,7 @@ async function createWindow() {
   });
 
   if (isDev) {
-    const devUrl = process.env.NORTH_DEV_URL || "http://localhost:3000";
+    const devUrl = process.env.NORTH_DEV_URL;
     await mainWindow.loadURL(devUrl);
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {

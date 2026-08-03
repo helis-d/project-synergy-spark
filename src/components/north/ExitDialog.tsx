@@ -58,7 +58,8 @@ export function ExitDialog({ open, doc, onConfirm, onCancel }: ExitDialogProps) 
         </div>
 
         <p className="mb-4 text-[13px] leading-relaxed text-ink-dim">
-          Çıkmadan önce <span className="font-medium text-ink">"{doc.title}"</span> belgesini indirmek ister misin?
+          Çıkmadan önce <span className="font-medium text-ink">"{doc.title}"</span> belgesini
+          indirmek ister misin?
         </p>
 
         <div className="mb-4 flex flex-col gap-1.5">

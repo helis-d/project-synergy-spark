@@ -12,7 +12,11 @@ interface ApiKeyDialogProps {
 }
 
 const PRESETS = [
-  { provider: "OpenRouter", baseUrl: "https://openrouter.ai/api/v1", model: "google/gemini-2.5-flash" },
+  {
+    provider: "OpenRouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    model: "google/gemini-2.5-flash",
+  },
   { provider: "OpenAI", baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
   { provider: "Groq", baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
   { provider: "DeepSeek", baseUrl: "https://api.deepseek.com/v1", model: "deepseek-chat" },
@@ -79,8 +83,8 @@ export function ApiKeyDialog({ open, config, onSave, onClear, onClose }: ApiKeyD
         </div>
 
         <p className="mb-2 text-[13px] leading-relaxed text-ink-dim">
-          Akış Modu için bir AI sağlayıcı API anahtarı gerekir. Anahtar bu cihazda saklanır (masaüstü
-          uygulamasında şifrelenerek, tarayıcıda bu tarayıcının yerel deposunda) ve{" "}
+          Akış Modu için bir AI sağlayıcı API anahtarı gerekir. Anahtar bu cihazda saklanır
+          (masaüstü uygulamasında şifrelenerek, tarayıcıda bu tarayıcının yerel deposunda) ve{" "}
           <strong className="font-semibold text-ink">
             her öneri isteğinde North sunucusuna gönderilir
           </strong>

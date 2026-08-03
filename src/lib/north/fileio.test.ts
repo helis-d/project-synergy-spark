@@ -9,9 +9,12 @@ function makeFile(name: string, content: string): File {
 describe("importFromFile", () => {
   it("sanitizes an imported .html document", async () => {
     const doc = await importFromFile(
-      makeFile("payload.html", '<p>hello</p><img src=x onerror="alert(1)"><script>alert(2)</script>'),
+      makeFile(
+        "payload.html",
+        '<p>hello</p><img src=x onerror="alert(1)"><script>alert(2)</script>',
+      ),
     );
-    const html = doc.branches['main']?.html ?? '';
+    const html = doc.branches["main"]?.html ?? "";
     expect(html).not.toContain("onerror");
     expect(html.toLowerCase()).not.toContain("<script");
     expect(html).not.toContain("alert(2)");
@@ -35,11 +38,11 @@ describe("importFromFile", () => {
       },
     });
     const doc = await importFromFile(makeFile("kotu.nh", payload));
-    expect(doc.branches['main']?.html ?? '').not.toContain("onerror");
+    expect(doc.branches["main"]?.html ?? "").not.toContain("onerror");
   });
 
   it("escapes a plain text import", async () => {
     const doc = await importFromFile(makeFile("note.txt", "<script>alert(1)</script>"));
-    expect((doc.branches['main']?.html ?? '').toLowerCase()).not.toContain("<script");
+    expect((doc.branches["main"]?.html ?? "").toLowerCase()).not.toContain("<script");
   });
 });

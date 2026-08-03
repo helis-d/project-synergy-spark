@@ -120,9 +120,7 @@ async function startNorthServer(preferredPort, baseDir) {
         if (Array.isArray(value)) headers[key] = value.join(", ");
         else if (value) headers[key] = value;
       }
-      const body = ["GET", "HEAD"].includes(req.method || "GET")
-        ? undefined
-        : await readBody(req);
+      const body = ["GET", "HEAD"].includes(req.method || "GET") ? undefined : await readBody(req);
 
       const response = await handler.fetch(
         new Request(url.toString(), {
