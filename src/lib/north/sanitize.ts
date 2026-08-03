@@ -24,10 +24,23 @@ const ALLOWED_TAGS = new Set([
   "a",
   "span",
   "div",
+  "sup",
+  "sub",
+  "mark",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
+  "img",
+  "hr",
+  "ins",
+  "del",
 ]);
 
-/** `href` for links, `style` for inline colour spans. Nothing else. */
-const ALLOWED_ATTR = new Set(["href", "style"]);
+/** Attributes the editor may produce on its elements. */
+const ALLOWED_ATTR = new Set(["href", "style", "src", "alt", "colspan", "rowspan", "class", "data-north-comment"]);
 
 /**
  * Sanitize untrusted HTML before it is stored or written through innerHTML.
@@ -81,7 +94,7 @@ function walkAndClean(root: Element): void {
         el.removeAttribute(attr.name);
         continue;
       }
-      if (name === "style" && tag !== "span") {
+      if (name === "style" && tag !== "span" && tag !== "img" && tag !== "td" && tag !== "th" && tag !== "mark" && tag !== "div" && tag !== "p" && tag !== "h1" && tag !== "h2" && tag !== "h3") {
         el.removeAttribute(attr.name);
         continue;
       }
@@ -93,6 +106,14 @@ function walkAndClean(root: Element): void {
         }
         continue;
       }
+      if (name === "src") {
+        // eslint-disable-next-line no-control-regex
+        const value = attr.value.trim().replace(/[\u0000-\u0020]/g, "");
+        if (/^(javascript|vbscript):/i.test(value)) {
+          el.removeAttribute(attr.name);
+        }
+        continue;
+      }
       if (!ALLOWED_ATTR.has(name)) {
         el.removeAttribute(attr.name);
       }
@@ -100,8 +121,6 @@ function walkAndClean(root: Element): void {
   });
 
   for (const el of remove) {
-    // Keep inner text of disallowed tags (e.g. <script> → nothing, but
-    // <table> → its text). For script/style we drop content entirely.
     const tag = el.tagName.toLowerCase();
     if (tag === "script" || tag === "style") {
       el.remove();
@@ -147,8 +166,18 @@ function sanitizeRegex(html: string): string {
           if (/^(javascript|data|vbscript):/i.test(cleaned)) continue;
           keptAttrs.push(`href="${value}"`);
         }
-        if (name === "style" && tag.toLowerCase() === "span") {
+        if (name === "style" && ALLOWED_TAGS.has(tag.toLowerCase())) {
           keptAttrs.push(`style="${value}"`);
+        }
+        if (name === "src") {
+          // eslint-disable-next-line no-control-regex
+          const cleaned = value.trim().replace(/[\u0000-\u0020]/g, "");
+          if (!/^(javascript|vbscript):/i.test(cleaned)) {
+            keptAttrs.push(`src="${value}"`);
+          }
+        }
+        if (name === "alt" || name === "colspan" || name === "rowspan" || name === "class" || name === "data-north-comment") {
+          keptAttrs.push(`${name}="${value}"`);
         }
       }
       const attrStr = keptAttrs.length > 0 ? " " + keptAttrs.join(" ") : "";

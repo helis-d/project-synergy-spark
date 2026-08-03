@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { sanitizeHtml, sanitizeBranches } from "./sanitize";
 
 describe("sanitizeHtml", () => {
-  it("strips an img onerror payload entirely", () => {
+  it("strips onerror from img but keeps the tag", () => {
     const out = sanitizeHtml('<p>hi</p><img src=x onerror="alert(1)">');
     expect(out).not.toContain("onerror");
-    expect(out).not.toContain("<img");
+    expect(out).toContain("<img");
     expect(out).toContain("hi");
   });
 
@@ -38,9 +38,10 @@ describe("sanitizeHtml", () => {
     expect(out).toContain("<b>");
   });
 
-  it("allows style only on span", () => {
+  it("allows style on span and block elements", () => {
     expect(sanitizeHtml('<span style="color:red">a</span>')).toContain("style");
-    expect(sanitizeHtml('<p style="color:red">a</p>')).not.toContain("style");
+    expect(sanitizeHtml('<p style="color:red">a</p>')).toContain("style");
+    expect(sanitizeHtml('<table style="width:100%"><tr><td>x</td></tr></table>')).toContain("<table");
   });
 
   it("sanitizes every branch of an imported document", () => {

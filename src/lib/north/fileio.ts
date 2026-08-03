@@ -16,6 +16,9 @@ export interface NhFile {
     themeOverride: number | null;
     autoTime: boolean;
     flowEnabled: boolean;
+    pageSettings?: NorthDoc["pageSettings"];
+    comments?: NorthDoc["comments"];
+    trackChanges?: boolean;
   };
 }
 
@@ -82,6 +85,9 @@ export function exportDoc(doc: NorthDoc, format: ExportFormat): void {
           themeOverride: doc.themeOverride,
           autoTime: doc.autoTime,
           flowEnabled: doc.flowEnabled,
+          pageSettings: doc.pageSettings,
+          comments: doc.comments,
+          trackChanges: doc.trackChanges,
         },
       };
       download(JSON.stringify(payload, null, 2), `${base}.nh`, "application/json");
@@ -125,6 +131,7 @@ export function exportBranch(doc: NorthDoc, branchName: string, format: ExportFo
           themeOverride: doc.themeOverride,
           autoTime: doc.autoTime,
           flowEnabled: doc.flowEnabled,
+          pageSettings: doc.pageSettings,
         },
       };
       download(JSON.stringify(payload, null, 2), `${base}.nh`, "application/json");
@@ -165,12 +172,14 @@ export function importFromFile(file: File): Promise<NorthDoc> {
               id: generateId(),
               title: d.title || file.name.replace(/\.[^.]+$/, ""),
               activeBranch: d.activeBranch || "main",
-              // Untrusted file: every branch body is sanitized before storage.
               branches: sanitizeBranches(d.branches),
               updatedAt: Date.now(),
               themeOverride: d.themeOverride ?? null,
               autoTime: d.autoTime ?? true,
               flowEnabled: d.flowEnabled ?? false,
+              pageSettings: d.pageSettings,
+              comments: d.comments ?? [],
+              trackChanges: d.trackChanges ?? false,
             });
             return;
           }

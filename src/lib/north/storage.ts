@@ -6,6 +6,27 @@ export interface Branch {
   createdAt: number;
 }
 
+export interface PageSettings {
+  size: "a4" | "letter";
+  orientation: "portrait" | "landscape";
+  margins: { top: number; bottom: number; left: number; right: number };
+  columns: 1 | 2 | 3;
+  showHeader: boolean;
+  showFooter: boolean;
+  showPageNumbers: boolean;
+  headerText: string;
+  footerText: string;
+}
+
+export interface Comment {
+  id: string;
+  text: string;
+  author: string;
+  createdAt: number;
+  resolved: boolean;
+  anchorText: string;
+}
+
 export interface NorthDoc {
   id: string;
   title: string;
@@ -15,6 +36,9 @@ export interface NorthDoc {
   themeOverride: number | null;
   autoTime: boolean;
   flowEnabled: boolean;
+  pageSettings?: PageSettings;
+  comments?: Comment[];
+  trackChanges?: boolean;
 }
 
 export interface ApiKeyConfig {
@@ -29,6 +53,18 @@ const ACTIVE_KEY = "north:active-doc:v2";
 const API_KEY_STORE = "north:ai-key:v1";
 
 export const WELCOME_HTML = `<h1>North'a Hoş Geldin</h1><p>Bu belge canlı bir taslak. Soldaki panelden dal açabilir, üstten <b>Akış Modu</b>'nu açıp yazmaya devam edebilir, bir kelimeyi seçip bağlantı ekleyebilirsin. Yazdıkların bu cihazda otomatik saklanır.</p><h2>Neden North</h2><p>Klasik bir kelime işlemcinin tüm temel araçları burada: yazı tipleri, başlıklar, listeler, renkler. Üstüne modern bir yazarın ihtiyaç duyduğu katman eklendi.</p><h3>Dene</h3><p>Bir cümle yaz, birkaç saniye dur; ✨ Akış açıksa bir devam önerisi göreceksin. Tab ile kabul et, Esc ile vazgeç.</p>`;
+
+export const DEFAULT_PAGE_SETTINGS: PageSettings = {
+  size: "a4",
+  orientation: "portrait",
+  margins: { top: 25, bottom: 25, left: 25, right: 25 },
+  columns: 1,
+  showHeader: false,
+  showFooter: false,
+  showPageNumbers: true,
+  headerText: "",
+  footerText: "",
+};
 
 let cachedId: string | null = null;
 
@@ -47,6 +83,9 @@ export function createInitialDoc(title?: string): NorthDoc {
     themeOverride: null,
     autoTime: true,
     flowEnabled: false,
+    pageSettings: DEFAULT_PAGE_SETTINGS,
+    comments: [],
+    trackChanges: false,
   };
 }
 
@@ -61,6 +100,9 @@ export function createBlankDoc(title?: string): NorthDoc {
     themeOverride: null,
     autoTime: true,
     flowEnabled: false,
+    pageSettings: DEFAULT_PAGE_SETTINGS,
+    comments: [],
+    trackChanges: false,
   };
 }
 

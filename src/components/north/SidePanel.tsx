@@ -1,5 +1,5 @@
 import { type RefObject } from "react";
-import { Mic, Square, X, Clock, Trash2, Upload, Key, FileDown, ChevronDown } from "lucide-react";
+import { Mic, Square, X, Clock, Trash2, Upload, Key, FileDown, ChevronDown, Printer, Settings } from "lucide-react";
 import { useState } from "react";
 import { THEME_LABELS, formatHour, type ThemeName } from "@/lib/north/theme";
 import type { ExportFormat } from "@/lib/north/fileio";
@@ -27,6 +27,8 @@ interface SidePanelProps {
   onImport: (files: FileList) => void;
   onReset: () => void;
   onOpenApiKey: () => void;
+  onOpenPageSettings: () => void;
+  onPrint: () => void;
   fileImportRef: RefObject<HTMLInputElement | null>;
 }
 
@@ -54,6 +56,8 @@ export function SidePanel({
   onImport,
   onReset,
   onOpenApiKey,
+  onOpenPageSettings,
+  onPrint,
   fileImportRef,
 }: SidePanelProps) {
   const [exportMenu, setExportMenu] = useState(false);
@@ -216,6 +220,24 @@ export function SidePanel({
             className={`h-2 w-2 rounded-full ${hasApiKey ? "bg-success" : "bg-muted-foreground/40"}`}
           />
         </button>
+
+        <h2 className="mt-6 mb-2 text-[11px] tracking-widest text-ink-dim uppercase">Sayfa</h2>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={onOpenPageSettings}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px] text-ink transition-all hover:bg-secondary active:scale-[0.98]"
+          >
+            <Settings className="h-4 w-4" /> Sayfa yapısı
+          </button>
+          <button
+            type="button"
+            onClick={onPrint}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px] text-ink transition-all hover:bg-secondary active:scale-[0.98]"
+          >
+            <Printer className="h-4 w-4" /> Yazdır / PDF
+          </button>
+        </div>
 
         <h2 className="mt-6 mb-2 text-[11px] tracking-widest text-ink-dim uppercase">Belge</h2>
         <div className="flex flex-col gap-2">

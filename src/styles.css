@@ -196,6 +196,67 @@
     opacity: 0.6;
     pointer-events: none;
   }
+  & table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 1em;
+    font-size: 0.95em;
+  }
+  & th,
+  & td {
+    border: 1px solid var(--color-border);
+    padding: 0.4em 0.6em;
+    text-align: left;
+    vertical-align: top;
+  }
+  & th {
+    background: color-mix(in oklch, var(--color-secondary) 60%, transparent);
+    font-weight: 600;
+  }
+  & img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    margin: 0.5em 0;
+  }
+  & mark {
+    background-color: oklch(0.90 0.14 95);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+  & sup,
+  & sub {
+    font-size: 0.7em;
+    line-height: 0;
+  }
+  & hr {
+    border: none;
+    border-top: 2px solid var(--color-border);
+    margin: 1.5em 0;
+  }
+  & .north-page-break {
+    page-break-after: always;
+    border-top: 2px dashed var(--color-border);
+    padding-top: 0.5em;
+    margin-top: 1em;
+    text-align: center;
+    font-size: 0.75em;
+    color: var(--color-muted-foreground);
+  }
+  & .north-comment-anchor {
+    background: color-mix(in oklch, var(--color-accent) 20%, transparent);
+    border-bottom: 2px solid var(--color-accent);
+    cursor: pointer;
+  }
+  & del.north-track {
+    color: var(--color-destructive);
+    text-decoration: line-through;
+  }
+  & ins.north-track {
+    color: var(--color-success);
+    text-decoration: none;
+  }
   &:empty::before {
     content: attr(data-placeholder);
     color: var(--color-muted-foreground);
@@ -302,5 +363,25 @@
   :focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
+  }
+}
+
+@media print {
+  body { background: white !important; }
+  .north-no-print { display: none !important; }
+  .north-paper {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .north-prose {
+    font-size: 12pt !important;
+    line-height: 1.5 !important;
+  }
+  .north-page-break {
+    page-break-after: always;
+  }
+  @page {
+    margin: 2cm;
   }
 }

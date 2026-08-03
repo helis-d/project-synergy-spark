@@ -1,26 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  List,
-  ListOrdered,
-  Quote,
-  Link2,
-  Sparkles,
-  Code as Code2,
-  Menu,
-  PanelRight,
-  Undo2,
-  Redo2,
-  Check,
-  Loader as Loader2,
-  Library,
-  Plus,
-  Key,
-  FileText,
-} from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Link2, Sparkles, Code as Code2, Menu, PanelRight, Undo2, Redo2, Check, Loader as Loader2, Library, Plus, Key, FileText, Search, CirclePlus as PlusCircle, ChevronLeft as AlignLeft, TextAlignCenter as AlignCenter, Highlighter as AlignRight, TextAlignJustify as AlignJustify, Highlighter, Superscript as SupIcon, Subscript as SubIcon, MessageSquare, GitBranch, Keyboard, Printer, ListIndentIncrease as IndentIncrease, ListIndentDecrease as IndentDecrease } from "lucide-react";
 import { THEME_LABELS, type ThemeName } from "@/lib/north/theme";
 
 interface ToolbarProps {
@@ -32,6 +11,8 @@ interface ToolbarProps {
   docTitle: string;
   editingTitle: boolean;
   titleDraft: string;
+  trackChanges: boolean;
+  zoom: number;
   onTitleClick: () => void;
   onTitleChange: (value: string) => void;
   onTitleSave: () => void;
@@ -46,6 +27,14 @@ interface ToolbarProps {
   onOpenLibrary: () => void;
   onCreateNew: () => void;
   onOpenApiKey: () => void;
+  onOpenFind: () => void;
+  onOpenInsert: () => void;
+  onOpenPageSettings: () => void;
+  onOpenShortcuts: () => void;
+  onToggleComments: () => void;
+  onToggleTrackChanges: () => void;
+  onInsertPageBreak: () => void;
+  onSetZoom: (zoom: number) => void;
 }
 
 const iconButton =
@@ -65,6 +54,8 @@ export function Toolbar({
   docTitle,
   editingTitle,
   titleDraft,
+  trackChanges,
+  zoom,
   onTitleClick,
   onTitleChange,
   onTitleSave,
@@ -79,6 +70,14 @@ export function Toolbar({
   onOpenLibrary,
   onCreateNew,
   onOpenApiKey,
+  onOpenFind,
+  onOpenInsert,
+  onOpenPageSettings,
+  onOpenShortcuts,
+  onToggleComments,
+  onToggleTrackChanges,
+  onInsertPageBreak,
+  onSetZoom,
 }: ToolbarProps) {
   const [marks, setMarks] = useState<Record<string, boolean>>({});
   const [block, setBlock] = useState("P");
@@ -90,6 +89,8 @@ export function Toolbar({
         for (const command of INLINE_COMMANDS) next[command] = document.queryCommandState(command);
         next["insertUnorderedList"] = document.queryCommandState("insertUnorderedList");
         next["insertOrderedList"] = document.queryCommandState("insertOrderedList");
+        next["superscript"] = document.queryCommandState("superscript");
+        next["subscript"] = document.queryCommandState("subscript");
         setMarks(next);
         const value = (document.queryCommandValue("formatBlock") || "p").toString().toUpperCase();
         setBlock(value);
@@ -104,7 +105,7 @@ export function Toolbar({
   const markClass = (command: string) => `${iconButton} ${marks[command] ? activeButton : ""}`;
 
   return (
-    <header className="col-span-full grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-line bg-panel/95 px-2 backdrop-blur-sm sm:px-4">
+    <header className="north-no-print col-span-full grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-line bg-panel/95 px-2 backdrop-blur-sm sm:px-4">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
         <button
           type="button"
@@ -171,7 +172,7 @@ export function Toolbar({
             type="button"
             className={iconButton}
             onClick={() => onCommand("undo")}
-            title="Geri al"
+            title="Geri al (⌘Z)"
             aria-label="Geri al"
           >
             <Undo2 className="h-4 w-4" />
@@ -180,7 +181,7 @@ export function Toolbar({
             type="button"
             className={iconButton}
             onClick={() => onCommand("redo")}
-            title="İleri al"
+            title="İleri al (⌘⇧Z)"
             aria-label="İleri al"
           >
             <Redo2 className="h-4 w-4" />
@@ -228,6 +229,50 @@ export function Toolbar({
           >
             <Strikethrough className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            className={markClass("superscript")}
+            aria-pressed={!!marks["superscript"]}
+            onClick={() => onCommand("superscript")}
+            title="Üst simge"
+            aria-label="Üst simge"
+          >
+            <SupIcon className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={markClass("subscript")}
+            aria-pressed={!!marks["subscript"]}
+            onClick={() => onCommand("subscript")}
+            title="Alt simge"
+            aria-label="Alt simge"
+          >
+            <SubIcon className="h-4 w-4" />
+          </button>
+          <label
+            className={`${iconButton} cursor-pointer`}
+            aria-label="Metin rengi"
+            title="Metin rengi"
+          >
+            <span className="h-4 w-4 rounded-full border border-line bg-linear-to-br from-primary to-accent" />
+            <input
+              type="color"
+              className="sr-only"
+              onChange={(event) => onCommand("foreColor", event.target.value)}
+            />
+          </label>
+          <label
+            className={`${iconButton} cursor-pointer`}
+            aria-label="Vurgu rengi"
+            title="Vurgu rengi"
+          >
+            <Highlighter className="h-4 w-4" />
+            <input
+              type="color"
+              className="sr-only"
+              onChange={(event) => onCommand("hiliteColor", event.target.value)}
+            />
+          </label>
         </div>
 
         <div className="north-group">
@@ -264,7 +309,7 @@ export function Toolbar({
             type="button"
             className={markClass("insertUnorderedList")}
             onClick={() => onCommand("insertUnorderedList")}
-            title="Madde listesi"
+            title="Madde listesi (⌘⇧8)"
             aria-label="Madde listesi"
           >
             <List className="h-4 w-4" />
@@ -273,7 +318,7 @@ export function Toolbar({
             type="button"
             className={markClass("insertOrderedList")}
             onClick={() => onCommand("insertOrderedList")}
-            title="Numaralı liste"
+            title="Numaralı liste (⌘⇧7)"
             aria-label="Numaralı liste"
           >
             <ListOrdered className="h-4 w-4" />
@@ -281,35 +326,63 @@ export function Toolbar({
         </div>
 
         <div className="north-group">
-          <select
-            aria-label="Yazı tipi"
-            defaultValue="serif"
-            onChange={(event) => {
-              const map: Record<string, string> = {
-                serif: "'Source Serif 4', serif",
-                sans: "'Inter', sans-serif",
-                mono: "'JetBrains Mono', monospace",
-              };
-              onCommand("fontName", map[event.target.value]);
-            }}
-            className="h-8 shrink-0 rounded-md border border-line bg-card px-1.5 text-[12.5px] text-ink"
+          <button
+            type="button"
+            className={iconButton}
+            onClick={() => onCommand("justifyLeft")}
+            title="Sola yasla"
+            aria-label="Sola yasla"
           >
-            <option value="serif">Serif</option>
-            <option value="sans">Sans</option>
-            <option value="mono">Mono</option>
-          </select>
-          <label
-            className={`${iconButton} cursor-pointer`}
-            aria-label="Metin rengi"
-            title="Metin rengi"
+            <AlignLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={() => onCommand("justifyCenter")}
+            title="Ortala"
+            aria-label="Ortala"
           >
-            <span className="h-4 w-4 rounded-full border border-line bg-linear-to-br from-primary to-accent" />
-            <input
-              type="color"
-              className="sr-only"
-              onChange={(event) => onCommand("foreColor", event.target.value)}
-            />
-          </label>
+            <AlignCenter className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={() => onCommand("justifyRight")}
+            title="Sağa yasla"
+            aria-label="Sağa yasla"
+          >
+            <AlignRight className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={() => onCommand("justifyFull")}
+            title="İki yana yasla"
+            aria-label="İki yana yasla"
+          >
+            <AlignJustify className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={() => onCommand("indent")}
+            title="Girintiyi artır"
+            aria-label="Girintiyi artır"
+          >
+            <IndentIncrease className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={() => onCommand("outdent")}
+            title="Girintiyi azalt"
+            aria-label="Girintiyi azalt"
+          >
+            <IndentDecrease className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="north-group">
           <button
             type="button"
             className={iconButton}
@@ -321,6 +394,33 @@ export function Toolbar({
           </button>
           <button
             type="button"
+            className={iconButton}
+            onClick={onOpenFind}
+            title="Bul ve değiştir (⌘F)"
+            aria-label="Bul ve değiştir"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={onOpenInsert}
+            title="Ekle — tablo, görsel, simge"
+            aria-label="Ekle"
+          >
+            <PlusCircle className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className={iconButton}
+            onClick={onInsertPageBreak}
+            title="Sayfa sonu ekle"
+            aria-label="Sayfa sonu ekle"
+          >
+            <FileText className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
             onClick={onToggleMd}
             aria-pressed={mdMode}
             className={`${iconButton} ${mdMode ? "bg-primary text-primary-foreground hover:bg-primary" : ""}`}
@@ -328,6 +428,28 @@ export function Toolbar({
             aria-label="Markdown görünümü"
           >
             <Code2 className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="north-group">
+          <button
+            type="button"
+            onClick={onToggleComments}
+            title="Yorumlar"
+            aria-label="Yorumlar"
+            className={iconButton}
+          >
+            <MessageSquare className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onToggleTrackChanges}
+            aria-pressed={trackChanges}
+            title="Değişiklikleri izle"
+            aria-label="Değişiklikleri izle"
+            className={`${iconButton} ${trackChanges ? activeButton : ""}`}
+          >
+            <GitBranch className="h-4 w-4" />
           </button>
         </div>
 
@@ -365,8 +487,29 @@ export function Toolbar({
             </>
           )}
         </span>
+        <button
+          type="button"
+          onClick={onOpenPageSettings}
+          className={`${iconButton} hidden sm:inline-flex`}
+          title="Sayfa yapısı ve yazdır"
+          aria-label="Sayfa yapısı ve yazdır"
+        >
+          <Printer className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onOpenShortcuts}
+          className={`${iconButton} hidden sm:inline-flex`}
+          title="Klavye kısayolları"
+          aria-label="Klavye kısayolları"
+        >
+          <Keyboard className="h-4 w-4" />
+        </button>
         <span className="hidden rounded-full border border-line px-2.5 py-1 text-[11px] text-ink-dim md:inline">
           {THEME_LABELS[theme]}
+        </span>
+        <span className="hidden rounded-full border border-line px-2.5 py-1 font-mono text-[11px] text-ink-dim lg:inline">
+          {Math.round(zoom * 100)}%
         </span>
         <button
           type="button"

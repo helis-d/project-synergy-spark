@@ -6,6 +6,15 @@ import { OutlinePanel, type OutlineItem } from "./OutlinePanel";
 import { SidePanel } from "./SidePanel";
 import { LinkPopup } from "./LinkPopup";
 import { ApiKeyDialog } from "./ApiKeyDialog";
+import { FindReplace } from "./FindReplace";
+import { InsertMenu } from "./InsertMenu";
+import { ShortcutsDialog } from "./ShortcutsDialog";
+import {
+  PageSettingsDialog,
+  DEFAULT_PAGE_SETTINGS,
+  type PageSettings,
+} from "./PageSettingsDialog";
+import { CommentsPanel, type Comment } from "./CommentsPanel";
 import {
   countWords,
   estimateReadingMinutes,
@@ -50,6 +59,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const [saved, setSaved] = useState(true);
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [words, setWords] = useState(0);
+  const [chars, setChars] = useState(0);
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
   const [mdMode, setMdMode] = useState(false);
@@ -62,6 +72,15 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(doc.title);
   const [branchMenu, setBranchMenu] = useState<string | null>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const [insertOpen, setInsertOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pageSettings, setPageSettings] = useState<PageSettings>(
+    doc.pageSettings ?? DEFAULT_PAGE_SETTINGS,
+  );
 
   const dictation = useDictation();
   const requestFlow = useServerFn(getFlowSuggestion);
@@ -69,6 +88,8 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const activeBranch = doc.activeBranch;
   const branches = useMemo(() => Object.keys(doc.branches), [doc.branches]);
   const currentHtml = doc.branches[activeBranch]?.html ?? "";
+  const comments = doc.comments ?? [];
+  const trackChanges = doc.trackChanges ?? false;
 
   useEffect(() => {
     void loadApiKeyConfigAsync().then(setApiKeyConfig);
@@ -77,6 +98,10 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   useEffect(() => {
     setTitleDraft(doc.title);
   }, [doc.title]);
+
+  useEffect(() => {
+    if (doc.pageSettings) setPageSettings(doc.pageSettings);
+  }, [doc.pageSettings]);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -137,7 +162,9 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         };
       }),
     );
-    setWords(countWords(editor.innerText ?? ""));
+    const text = editor.innerText ?? "";
+    setWords(countWords(text));
+    setChars(text.replace(/\s/g, "").length);
   }, []);
 
   const commitHtml = useCallback(() => {
@@ -258,13 +285,52 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         }
         removeGhost();
       }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+      const mod = event.metaKey || event.ctrlKey;
+      if (mod && event.key.toLowerCase() === "s") {
         event.preventDefault();
         commitHtml();
         saveDoc(doc);
         setSaved(true);
       }
+      if (mod && event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        setFindOpen(true);
+      }
+      if (mod && event.key.toLowerCase() === "h") {
+        event.preventDefault();
+        setFindOpen(true);
+      }
+      if (mod && event.key === "Enter") {
+        event.preventDefault();
+        insertPageBreak();
+      }
+      if (mod && event.key === "=") {
+        event.preventDefault();
+        setZoom((z) => Math.min(2.5, z + 0.1));
+      }
+      if (mod && event.key === "-") {
+        event.preventDefault();
+        setZoom((z) => Math.max(0.5, z - 0.1));
+      }
+      if (mod && event.key === "0") {
+        event.preventDefault();
+        setZoom(1);
+      }
+      if (mod && event.shiftKey && event.key === "8") {
+        event.preventDefault();
+        exec("insertUnorderedList");
+      }
+      if (mod && event.shiftKey && event.key === "7") {
+        event.preventDefault();
+        exec("insertOrderedList");
+      }
+      if (mod && (event.key === "1" || event.key === "2" || event.key === "3")) {
+        if (!event.shiftKey) return;
+        event.preventDefault();
+        execBlock(`H${event.key}`);
+      }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [commitHtml, doc, refreshDerived, removeGhost],
   );
 
@@ -274,7 +340,6 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
       document.execCommand(command, false, value);
       handleInput();
     },
-
     [handleInput],
   );
 
@@ -282,6 +347,42 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
     (tag: string) => {
       editorRef.current?.focus();
       document.execCommand("formatBlock", false, tag);
+      handleInput();
+    },
+    [handleInput],
+  );
+
+  const insertPageBreak = useCallback(() => {
+    editorRef.current?.focus();
+    const hr = document.createElement("div");
+    hr.className = "north-page-break";
+    hr.textContent = "— sayfa sonu —";
+    document.execCommand("insertHTML", false, hr.outerHTML);
+    handleInput();
+  }, [handleInput]);
+
+  const insertTable = useCallback(
+    (rows: number, cols: number) => {
+      editorRef.current?.focus();
+      const parts: string[] = ["<table><tbody>"];
+      for (let r = 0; r < rows; r++) {
+        parts.push("<tr>");
+        for (let c = 0; c < cols; c++) {
+          parts.push(r === 0 ? "<th>&nbsp;</th>" : "<td>&nbsp;</td>");
+        }
+        parts.push("</tr>");
+      }
+      parts.push("</tbody></table><p>&nbsp;</p>");
+      document.execCommand("insertHTML", false, parts.join(""));
+      handleInput();
+    },
+    [handleInput],
+  );
+
+  const insertImage = useCallback(
+    (src: string) => {
+      editorRef.current?.focus();
+      document.execCommand("insertHTML", false, `<img src="${src}" alt="" />`);
       handleInput();
     },
     [handleInput],
@@ -326,6 +427,93 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
       window.open(href, "_blank", "noopener,noreferrer");
     }
   }, []);
+
+  /* comments */
+  const addComment = useCallback(
+    (text: string) => {
+      const selection = window.getSelection();
+      const anchorText = selection?.toString()?.trim() ?? "";
+      const newComment: Comment = {
+        id: `cmt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+        text,
+        author: "Sen",
+        createdAt: Date.now(),
+        resolved: false,
+        anchorText,
+      };
+      onChange({ ...doc, comments: [...comments, newComment] });
+    },
+    [doc, comments, onChange],
+  );
+
+  const deleteComment = useCallback(
+    (id: string) => {
+      onChange({ ...doc, comments: comments.filter((c) => c.id !== id) });
+    },
+    [doc, comments, onChange],
+  );
+
+  const resolveComment = useCallback(
+    (id: string) => {
+      onChange({
+        ...doc,
+        comments: comments.map((c) => (c.id === id ? { ...c, resolved: !c.resolved } : c)),
+      });
+    },
+    [doc, comments, onChange],
+  );
+
+  const toggleTrackChanges = useCallback(() => {
+    onChange({ ...doc, trackChanges: !trackChanges });
+  }, [doc, trackChanges, onChange]);
+
+  /* page settings */
+  const handleSavePageSettings = useCallback(
+    (settings: PageSettings) => {
+      onChange({ ...doc, pageSettings: settings });
+      setPageSettings(settings);
+    },
+    [doc, onChange],
+  );
+
+  const handlePrint = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const html = editor.innerHTML;
+    const printWin = window.open("", "_blank", "noopener,noreferrer");
+    if (!printWin) return;
+    const sizeRule =
+      pageSettings.size === "a4"
+        ? "@page { size: A4; margin: 0; }"
+        : "@page { size: Letter; margin: 0; }";
+    const orientationRule = pageSettings.orientation === "landscape" ? "size: landscape;" : "";
+    const margins = `padding: ${pageSettings.margins.top}mm ${pageSettings.margins.right}mm ${pageSettings.margins.bottom}mm ${pageSettings.margins.left}mm;`;
+    const columnsRule =
+      pageSettings.columns > 1
+        ? `column-count: ${pageSettings.columns}; column-gap: 2em;`
+        : "";
+    const headerHtml = pageSettings.showHeader
+      ? `<div style="border-bottom:1px solid #ccc;padding:4px 0;margin-bottom:8px;text-align:center;font-size:11px">${pageSettings.headerText || "&nbsp;"}</div>`
+      : "";
+    const footerHtml = pageSettings.showFooter
+      ? `<div style="border-top:1px solid #ccc;padding:4px 0;margin-top:8px;text-align:center;font-size:11px">${pageSettings.footerText || "&nbsp;"}</div>`
+      : "";
+    printWin.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${doc.title}</title><style>
+      body { font-family: 'Source Serif 4', Georgia, serif; color: #222; ${margins} }
+      .north-content { ${columnsRule} }
+      ${sizeRule.replace("margin: 0;", `margin: ${orientationRule}`)}
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #999; padding: 4px 8px; }
+      img { max-width: 100%; height: auto; }
+      .north-page-break { page-break-after: always; }
+    </style></head><body>${headerHtml}<div class="north-content">${html}</div>${footerHtml}</body></html>`);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => {
+      printWin.print();
+      printWin.close();
+    }, 300);
+  }, [doc.title, pageSettings]);
 
   /* branches */
   const switchBranch = useCallback(
@@ -507,6 +695,11 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
 
   const headings = useMemo(() => outline.map((item) => item.text).filter(Boolean), [outline]);
 
+  const columnsStyle =
+    pageSettings.columns > 1
+      ? { columnCount: pageSettings.columns, columnGap: "2em" }
+      : undefined;
+
   return (
     <div className="grid h-[100dvh] grid-rows-[3.5rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)_18rem]">
       <Toolbar
@@ -518,6 +711,8 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         docTitle={doc.title}
         editingTitle={editingTitle}
         titleDraft={titleDraft}
+        trackChanges={trackChanges}
+        zoom={zoom}
         onTitleClick={() => setEditingTitle(true)}
         onTitleChange={setTitleDraft}
         onTitleSave={handleTitleSave}
@@ -541,6 +736,14 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         onOpenLibrary={onOpenLibrary}
         onCreateNew={onCreateNew}
         onOpenApiKey={() => setApiKeyOpen(true)}
+        onOpenFind={() => setFindOpen(true)}
+        onOpenInsert={() => setInsertOpen(true)}
+        onOpenPageSettings={() => setPageSettingsOpen(true)}
+        onOpenShortcuts={() => setShortcutsOpen(true)}
+        onToggleComments={() => setCommentsOpen((open) => !open)}
+        onToggleTrackChanges={toggleTrackChanges}
+        onInsertPageBreak={insertPageBreak}
+        onSetZoom={setZoom}
       />
 
       <OutlinePanel
@@ -568,6 +771,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         <main className="north-scroll flex-1 overflow-y-auto px-3 py-6 sm:px-6 sm:py-10">
           <div
             className={mdMode ? "mx-auto grid max-w-6xl gap-5 lg:grid-cols-2" : "mx-auto max-w-3xl"}
+            style={{ transform: `scale(${zoom})`, transformOrigin: "top center" }}
           >
             <div
               ref={editorRef}
@@ -584,7 +788,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
               onClick={handleEditorClick}
               onBlur={commitHtml}
               className="north-paper north-prose min-h-[calc(100dvh-13rem)] px-5 py-7 text-ink outline-none sm:px-10 sm:py-12"
-              style={mdMode ? { pointerEvents: "none", opacity: 0.85 } : undefined}
+              style={mdMode ? { pointerEvents: "none", opacity: 0.85 } : columnsStyle}
             />
             {mdMode && (
               <textarea
@@ -597,14 +801,21 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
           </div>
         </main>
 
-        <footer className="flex shrink-0 items-center gap-3 border-t border-line bg-panel/95 px-3 py-2 text-[11.5px] text-ink-dim backdrop-blur-sm sm:px-6">
+        <footer className="north-no-print flex shrink-0 items-center gap-3 border-t border-line bg-panel/95 px-3 py-2 text-[11.5px] text-ink-dim backdrop-blur-sm sm:px-6">
           <span className="inline-flex items-center gap-1.5">
             <GitBranch className="h-3.5 w-3.5 text-primary" />
             <span className="font-medium text-ink">{activeBranch}</span>
           </span>
           <span className="h-3 w-px bg-line" />
           <span>{words} kelime</span>
+          <span className="hidden sm:inline">· {chars} karakter</span>
           <span className="hidden sm:inline">· ~{estimateReadingMinutes(words)} dk okuma</span>
+          {comments.length > 0 && (
+            <span className="hidden sm:inline">· {comments.length} yorum</span>
+          )}
+          {trackChanges && (
+            <span className="hidden sm:inline text-primary">· izleme açık</span>
+          )}
           <span className="ml-auto inline-flex items-center gap-1.5">
             {doc.flowEnabled && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-primary">
@@ -640,6 +851,8 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         onImport={handleImport}
         onReset={resetDoc}
         onOpenApiKey={() => setApiKeyOpen(true)}
+        onOpenPageSettings={() => setPageSettingsOpen(true)}
+        onPrint={handlePrint}
         fileImportRef={fileImportRef}
       />
 
@@ -658,6 +871,42 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         onClose={() => setApiKeyOpen(false)}
       />
 
+      <FindReplace
+        open={findOpen}
+        onClose={() => setFindOpen(false)}
+        editorRef={editorRef}
+        onCommit={commitHtml}
+      />
+
+      <InsertMenu
+        open={insertOpen}
+        onClose={() => setInsertOpen(false)}
+        onCommand={exec}
+        onInsertTable={insertTable}
+        onInsertImage={insertImage}
+        onSetZoom={setZoom}
+        zoom={zoom}
+      />
+
+      <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+      <PageSettingsDialog
+        open={pageSettingsOpen}
+        settings={pageSettings}
+        onSave={handleSavePageSettings}
+        onClose={() => setPageSettingsOpen(false)}
+        onPrint={handlePrint}
+      />
+
+      <CommentsPanel
+        open={commentsOpen}
+        comments={comments}
+        onClose={() => setCommentsOpen(false)}
+        onAdd={addComment}
+        onDelete={deleteComment}
+        onResolve={resolveComment}
+      />
+
       <input
         ref={fileImportRef}
         type="file"
@@ -670,7 +919,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
       />
 
       {(flowState === "ready" || flowState === "loading" || flowState === "error") && (
-        <div className="pointer-events-none north-rise fixed bottom-14 left-1/2 z-40 flex max-w-[92vw] -translate-x-1/2 items-center gap-2.5 rounded-full border border-line bg-panel px-4 py-2 text-[12.5px] text-ink-dim shadow-panel">
+        <div className="north-no-print pointer-events-none north-rise fixed bottom-14 left-1/2 z-40 flex max-w-[92vw] -translate-x-1/2 items-center gap-2.5 rounded-full border border-line bg-panel px-4 py-2 text-[12.5px] text-ink-dim shadow-panel">
           <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
           {flowState === "loading" && <span>öneri hazırlanıyor…</span>}
           {flowState === "error" && (
