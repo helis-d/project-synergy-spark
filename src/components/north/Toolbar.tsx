@@ -1,6 +1,44 @@
 import { useEffect, useState } from "react";
-import { Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Link2, Sparkles, Code as Code2, Menu, PanelRight, Undo2, Redo2, Check, Loader as Loader2, Library, Plus, Key, FileText, Search, CirclePlus as PlusCircle, ChevronLeft as AlignLeft, TextAlignCenter as AlignCenter, Highlighter as AlignRight, TextAlignJustify as AlignJustify, Highlighter, Superscript as SupIcon, Subscript as SubIcon, MessageSquare, GitBranch, Keyboard, Printer, ListIndentIncrease as IndentIncrease, ListIndentDecrease as IndentDecrease } from "lucide-react";
+import {
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Quote,
+  Link2,
+  Sparkles,
+  Code2,
+  Menu,
+  PanelRight,
+  Undo2,
+  Redo2,
+  Check,
+  Loader2,
+  Library,
+  Plus,
+  Key,
+  FileText,
+  Search,
+  CirclePlus as PlusCircle,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Highlighter,
+  Superscript as SupIcon,
+  Subscript as SubIcon,
+  MessageSquare,
+  GitBranch,
+  Keyboard,
+  Printer,
+  IndentIncrease,
+  IndentDecrease,
+} from "lucide-react";
 import { THEME_LABELS, type ThemeName } from "@/lib/north/theme";
+import { MenuBar } from "./MenuBar";
+import type { EditorActions } from "./actions";
 
 interface ToolbarProps {
   theme: ThemeName;
@@ -35,6 +73,7 @@ interface ToolbarProps {
   onToggleTrackChanges: () => void;
   onInsertPageBreak: () => void;
   onSetZoom: (zoom: number) => void;
+  actions: EditorActions;
 }
 
 const iconButton =
@@ -78,6 +117,7 @@ export function Toolbar({
   onToggleTrackChanges,
   onInsertPageBreak,
   onSetZoom,
+  actions,
 }: ToolbarProps) {
   const [marks, setMarks] = useState<Record<string, boolean>>({});
   const [block, setBlock] = useState("P");
@@ -136,6 +176,14 @@ export function Toolbar({
         <div className="hidden items-center gap-2 pr-1 sm:flex">
           <span className="h-2 w-2 shrink-0 rounded-full bg-primary ring-4 ring-primary/20" />
           <span className="font-serif text-[17px] font-bold tracking-wide">North</span>
+        </div>
+        <div className="hidden lg:flex">
+          <MenuBar
+            actions={actions}
+            flowEnabled={flowEnabled}
+            mdMode={mdMode}
+            trackChanges={trackChanges}
+          />
         </div>
       </div>
 

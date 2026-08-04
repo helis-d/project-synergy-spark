@@ -1,5 +1,24 @@
 import { useState, useEffect, useRef } from "react";
-import { Table as TableIcon, Image as ImageIcon, Sigma, Subscript as SubIcon, Highlighter, X, Pilcrow, ChevronLeft as AlignLeft, TextAlignCenter as AlignCenter, Highlighter as AlignRight, TextAlignJustify as AlignJustify, ListIndentIncrease as IndentIncrease, ListIndentDecrease as IndentDecrease, ZoomIn, ZoomOut, Printer, Type, Minus } from "lucide-react";
+import {
+  Table as TableIcon,
+  Image as ImageIcon,
+  Sigma,
+  Subscript as SubIcon,
+  Highlighter,
+  X,
+  Pilcrow,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  IndentIncrease,
+  IndentDecrease,
+  ZoomIn,
+  ZoomOut,
+  Printer,
+  Type,
+  Minus,
+} from "lucide-react";
 
 interface InsertMenuProps {
   open: boolean;
@@ -119,8 +138,22 @@ export function InsertMenu({
   const rootItems = [
     { icon: TableIcon, label: "Tablo", action: () => setMode("table") },
     { icon: ImageIcon, label: "Görsel", action: () => setMode("image") },
-    { icon: Sigma, label: "Üst simge", action: () => { onCommand("superscript"); onClose(); } },
-    { icon: SubIcon, label: "Alt simge", action: () => { onCommand("subscript"); onClose(); } },
+    {
+      icon: Sigma,
+      label: "Üst simge",
+      action: () => {
+        onCommand("superscript");
+        onClose();
+      },
+    },
+    {
+      icon: SubIcon,
+      label: "Alt simge",
+      action: () => {
+        onCommand("subscript");
+        onClose();
+      },
+    },
     { icon: Highlighter, label: "Vurgu", action: () => setMode("font") },
     { icon: Type, label: "Yazı tipi", action: () => setMode("font") },
     { icon: Pilcrow, label: "Özel karakter", action: () => setMode("symbol") },
@@ -143,7 +176,17 @@ export function InsertMenu({
     >
       <div className="mb-1.5 flex items-center justify-between px-1">
         <h3 className="text-[13px] font-semibold text-ink">
-          {mode === "root" ? "Ekle" : mode === "table" ? "Tablo Ekle" : mode === "image" ? "Görsel Ekle" : mode === "symbol" ? "Özel Karakter" : mode === "font" ? "Biçimlendirme" : "Yakınlaştır"}
+          {mode === "root"
+            ? "Ekle"
+            : mode === "table"
+              ? "Tablo Ekle"
+              : mode === "image"
+                ? "Görsel Ekle"
+                : mode === "symbol"
+                  ? "Özel Karakter"
+                  : mode === "font"
+                    ? "Biçimlendirme"
+                    : "Yakınlaştır"}
         </h3>
         <button
           type="button"
@@ -198,10 +241,7 @@ export function InsertMenu({
             style={{ gridTemplateColumns: `repeat(${tableCols}, 1fr)` }}
           >
             {Array.from({ length: tableRows * tableCols }).map((_, i) => (
-              <div
-                key={i}
-                className="h-6 rounded-sm border border-line bg-secondary/50"
-              />
+              <div key={i} className="h-6 rounded-sm border border-line bg-secondary/50" />
             ))}
           </div>
           <button
@@ -269,7 +309,9 @@ export function InsertMenu({
       {mode === "font" && (
         <div className="space-y-3 p-1">
           <div>
-            <p className="mb-1 text-[11px] text-ink-dim uppercase tracking-wide">Yazı tipi ailesi</p>
+            <p className="mb-1 text-[11px] text-ink-dim uppercase tracking-wide">
+              Yazı tipi ailesi
+            </p>
             <div className="flex flex-col gap-0.5">
               {FONTS.map((font) => (
                 <button

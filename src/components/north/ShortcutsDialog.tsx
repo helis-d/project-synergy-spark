@@ -57,10 +57,7 @@ export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
           <table className="w-full text-[13px]">
             <tbody>
               {SHORTCUTS.map((s, i) => (
-                <tr
-                  key={i}
-                  className="border-b border-line/50 last:border-0"
-                >
+                <tr key={i} className="border-b border-line/50 last:border-0">
                   <td className="py-2 pr-4">
                     <kbd className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] text-ink">
                       {s.keys}

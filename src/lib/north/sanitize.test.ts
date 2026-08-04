@@ -41,7 +41,9 @@ describe("sanitizeHtml", () => {
   it("allows style on span and block elements", () => {
     expect(sanitizeHtml('<span style="color:red">a</span>')).toContain("style");
     expect(sanitizeHtml('<p style="color:red">a</p>')).toContain("style");
-    expect(sanitizeHtml('<table style="width:100%"><tr><td>x</td></tr></table>')).toContain("<table");
+    expect(sanitizeHtml('<table style="width:100%"><tr><td>x</td></tr></table>')).toContain(
+      "<table",
+    );
   });
 
   it("sanitizes every branch of an imported document", () => {
