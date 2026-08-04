@@ -134,12 +134,14 @@ export function PageSettingsDialog({
               Kenar boşlukları (mm)
             </label>
             <div className="grid grid-cols-4 gap-2">
-              {([
-                { key: "top", label: "Üst" },
-                { key: "bottom", label: "Alt" },
-                { key: "left", label: "Sol" },
-                { key: "right", label: "Sağ" },
-              ] as const).map((m) => (
+              {(
+                [
+                  { key: "top", label: "Üst" },
+                  { key: "bottom", label: "Alt" },
+                  { key: "left", label: "Sol" },
+                  { key: "right", label: "Sağ" },
+                ] as const
+              ).map((m) => (
                 <div key={m.key}>
                   <span className="mb-0.5 block text-[10px] text-ink-dim">{m.label}</span>
                   <input

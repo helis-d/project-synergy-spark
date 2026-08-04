@@ -9,11 +9,10 @@ import { ApiKeyDialog } from "./ApiKeyDialog";
 import { FindReplace } from "./FindReplace";
 import { InsertMenu } from "./InsertMenu";
 import { ShortcutsDialog } from "./ShortcutsDialog";
-import {
-  PageSettingsDialog,
-  DEFAULT_PAGE_SETTINGS,
-  type PageSettings,
-} from "./PageSettingsDialog";
+import { CommandPalette } from "./CommandPalette";
+import { VersionHistoryDialog } from "./VersionHistoryDialog";
+import type { EditorActions } from "./actions";
+import { PageSettingsDialog, DEFAULT_PAGE_SETTINGS, type PageSettings } from "./PageSettingsDialog";
 import { CommentsPanel, type Comment } from "./CommentsPanel";
 import {
   countWords,
@@ -33,6 +32,7 @@ import { useTimeTheme } from "@/lib/north/useTimeTheme";
 import { useDictation } from "@/lib/north/useDictation";
 import { getFlowSuggestion } from "@/lib/north/flow.functions";
 import { exportDoc, exportBranch, importFromFile, type ExportFormat } from "@/lib/north/fileio";
+import { pushVersion } from "@/lib/north/history";
 import { sanitizeHtml } from "@/lib/north/sanitize";
 
 const GHOST_CLASS = "north-ghost";
@@ -78,6 +78,8 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const [pageSettings, setPageSettings] = useState<PageSettings>(
     doc.pageSettings ?? DEFAULT_PAGE_SETTINGS,
   );
@@ -489,16 +491,15 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
     const orientationRule = pageSettings.orientation === "landscape" ? "size: landscape;" : "";
     const margins = `padding: ${pageSettings.margins.top}mm ${pageSettings.margins.right}mm ${pageSettings.margins.bottom}mm ${pageSettings.margins.left}mm;`;
     const columnsRule =
-      pageSettings.columns > 1
-        ? `column-count: ${pageSettings.columns}; column-gap: 2em;`
-        : "";
+      pageSettings.columns > 1 ? `column-count: ${pageSettings.columns}; column-gap: 2em;` : "";
     const headerHtml = pageSettings.showHeader
       ? `<div style="border-bottom:1px solid #ccc;padding:4px 0;margin-bottom:8px;text-align:center;font-size:11px">${pageSettings.headerText || "&nbsp;"}</div>`
       : "";
     const footerHtml = pageSettings.showFooter
       ? `<div style="border-top:1px solid #ccc;padding:4px 0;margin-top:8px;text-align:center;font-size:11px">${pageSettings.footerText || "&nbsp;"}</div>`
       : "";
-    printWin.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${doc.title}</title><style>
+    printWin.document
+      .write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${doc.title}</title><style>
       body { font-family: 'Source Serif 4', Georgia, serif; color: #222; ${margins} }
       .north-content { ${columnsRule} }
       ${sizeRule.replace("margin: 0;", `margin: ${orientationRule}`)}
@@ -693,15 +694,154 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
     setApiKeyConfig(null);
   }, []);
 
+  /* ---- unified action surface (menu bar + command palette) ---- */
+
+  const saveNow = useCallback(() => {
+    commitHtml();
+    saveDoc(doc);
+    setSaved(true);
+    pushVersion(doc, "manuel");
+  }, [commitHtml, doc]);
+
+  const insertChecklist = useCallback(() => {
+    editorRef.current?.focus();
+    document.execCommand(
+      "insertHTML",
+      false,
+      '<ul class="north-checklist"><li><input type="checkbox" disabled> Yeni madde</li></ul>',
+    );
+    handleInput();
+  }, [handleInput]);
+
+  const restoreVersion = useCallback(
+    (html: string) => {
+      /* snapshot the current text first so a restore is never destructive */
+      pushVersion(doc, "geri yükleme öncesi");
+      const editor = editorRef.current;
+      if (editor) editor.innerHTML = sanitizeHtml(html);
+      onChange({
+        ...doc,
+        branches: {
+          ...doc.branches,
+          [doc.activeBranch]: {
+            ...(doc.branches[doc.activeBranch] ?? { parent: null, createdAt: Date.now() }),
+            html: sanitizeHtml(html),
+          },
+        },
+      });
+      refreshDerived();
+    },
+    [doc, onChange, refreshDerived],
+  );
+
+  const actions = useMemo<EditorActions>(
+    () => ({
+      newDoc: onCreateNew,
+      openLibrary: onOpenLibrary,
+      openFile: () => fileImportRef.current?.click(),
+      save: saveNow,
+      exportAs: handleExport,
+      print: handlePrint,
+      resetDoc,
+      openVersions: () => setVersionsOpen(true),
+
+      undo: () => exec("undo"),
+      redo: () => exec("redo"),
+      cut: () => exec("cut"),
+      copy: () => exec("copy"),
+      paste: () => exec("paste"),
+      find: () => setFindOpen(true),
+      selectAll: () => exec("selectAll"),
+
+      command: exec,
+      block: execBlock,
+      insertLink: openLinkPopup,
+      insertPageBreak,
+      insertRule: () => exec("insertHorizontalRule"),
+      insertChecklist,
+      openInsert: () => setInsertOpen(true),
+
+      toggleOutline: () => setOutlineOpen((open) => !open),
+      toggleSide: () => setSideOpen((open) => !open),
+      toggleComments: () => setCommentsOpen((open) => !open),
+      toggleMarkdown: toggleMd,
+      zoomIn: () => setZoom((z) => Math.min(2.5, z + 0.1)),
+      zoomOut: () => setZoom((z) => Math.max(0.5, z - 0.1)),
+      zoomReset: () => setZoom(1),
+      openPageSettings: () => setPageSettingsOpen(true),
+
+      toggleFlow: () => {
+        if (!doc.flowEnabled && !apiKeyConfig) {
+          setApiKeyOpen(true);
+          return;
+        }
+        onChange({ ...doc, flowEnabled: !doc.flowEnabled });
+      },
+      toggleTrackChanges,
+      toggleDictation,
+      newBranch,
+      openApiKey: () => setApiKeyOpen(true),
+      openShortcuts: () => setShortcutsOpen(true),
+      openPalette: () => setPaletteOpen(true),
+    }),
+    [
+      apiKeyConfig,
+      doc,
+      exec,
+      execBlock,
+      handleExport,
+      handlePrint,
+      insertChecklist,
+      insertPageBreak,
+      newBranch,
+      onChange,
+      onCreateNew,
+      onOpenLibrary,
+      openLinkPopup,
+      resetDoc,
+      saveNow,
+      toggleDictation,
+      toggleMd,
+      toggleTrackChanges,
+    ],
+  );
+
+  /* Global shortcuts that must work even when focus is outside the editor. */
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const mod = event.metaKey || event.ctrlKey;
+      if (!mod) return;
+      const key = event.key.toLowerCase();
+      if (key === "k" && !event.shiftKey) {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+      if (key === "o" && event.shiftKey) {
+        event.preventDefault();
+        onOpenLibrary();
+      }
+      if (key === "n" && event.shiftKey) {
+        event.preventDefault();
+        onCreateNew();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCreateNew, onOpenLibrary]);
+
+  /* Periodic autosave snapshot, so a bad edit is always recoverable. */
+  useEffect(() => {
+    const timer = window.setInterval(() => pushVersion(doc, "otomatik"), 120_000);
+    return () => window.clearInterval(timer);
+  }, [doc]);
+
   const headings = useMemo(() => outline.map((item) => item.text).filter(Boolean), [outline]);
 
   const columnsStyle =
-    pageSettings.columns > 1
-      ? { columnCount: pageSettings.columns, columnGap: "2em" }
-      : undefined;
+    pageSettings.columns > 1 ? { columnCount: pageSettings.columns, columnGap: "2em" } : undefined;
 
   return (
-    <div className="grid h-[100dvh] grid-rows-[3.5rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)_18rem]">
+    <div className="grid h-[100dvh] grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)_18rem]">
       <Toolbar
         theme={theme}
         flowEnabled={doc.flowEnabled}
@@ -744,6 +884,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         onToggleTrackChanges={toggleTrackChanges}
         onInsertPageBreak={insertPageBreak}
         onSetZoom={setZoom}
+        actions={actions}
       />
 
       <OutlinePanel
@@ -813,9 +954,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
           {comments.length > 0 && (
             <span className="hidden sm:inline">· {comments.length} yorum</span>
           )}
-          {trackChanges && (
-            <span className="hidden sm:inline text-primary">· izleme açık</span>
-          )}
+          {trackChanges && <span className="hidden sm:inline text-primary">· izleme açık</span>}
           <span className="ml-auto inline-flex items-center gap-1.5">
             {doc.flowEnabled && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/12 px-2 py-0.5 text-primary">
@@ -889,6 +1028,15 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
       />
 
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} actions={actions} />
+
+      <VersionHistoryDialog
+        open={versionsOpen}
+        onOpenChange={setVersionsOpen}
+        docId={doc.id}
+        onRestore={restoreVersion}
+      />
 
       <PageSettingsDialog
         open={pageSettingsOpen}

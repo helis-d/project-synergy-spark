@@ -1,9 +1,9 @@
 import type { NorthDoc } from "./storage";
-import { generateId, createBlankDoc } from "./storage";
+import { generateId, createBlankDoc, DEFAULT_PAGE_SETTINGS } from "./storage";
 import { htmlToMarkdown, markdownToHtml } from "./markdown";
 import { sanitizeHtml, sanitizeBranches } from "./sanitize";
 
-export type ExportFormat = "nh" | "md" | "html" | "txt";
+export type ExportFormat = "nh" | "md" | "html" | "txt" | "doc";
 
 export interface NhFile {
   format: "north";
@@ -16,9 +16,9 @@ export interface NhFile {
     themeOverride: number | null;
     autoTime: boolean;
     flowEnabled: boolean;
-    pageSettings?: NorthDoc["pageSettings"];
-    comments?: NorthDoc["comments"];
-    trackChanges?: boolean;
+    pageSettings?: NorthDoc["pageSettings"] | undefined;
+    comments?: NorthDoc["comments"] | undefined;
+    trackChanges?: boolean | undefined;
   };
 }
 
@@ -27,6 +27,7 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
   md: "Markdown (.md)",
   html: "HTML (.html)",
   txt: "Düz metin (.txt)",
+  doc: "Word belgesi (.doc)",
 };
 
 export function getFormatLabel(format: ExportFormat): string {
@@ -65,6 +66,23 @@ function download(content: string, filename: string, mime: string): void {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Word-compatible HTML. Word (and LibreOffice) open this natively and keep
+ * headings, bold/italic, lists, tables and images. Written as `.doc` because a
+ * true `.docx` is a ZIP container and North ships no archiver dependency.
+ */
+export function toWordHtml(title: string, bodyHtml: string): string {
+  return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${title}</title><style>
+body { font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; }
+h1 { font-size: 22pt; } h2 { font-size: 17pt; } h3 { font-size: 14pt; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #999; padding: 4pt 6pt; }
+blockquote { margin-left: 24pt; font-style: italic; }
+pre, code { font-family: 'Courier New', monospace; }
+img { max-width: 100%; }
+</style></head><body>${sanitizeHtml(bodyHtml)}</body></html>`;
 }
 
 export function exportDoc(doc: NorthDoc, format: ExportFormat): void {
@@ -107,6 +125,10 @@ export function exportDoc(doc: NorthDoc, format: ExportFormat): void {
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = sanitizeHtml(html);
       download(tempDiv.innerText, `${base}.txt`, "text/plain");
+      break;
+    }
+    case "doc": {
+      download(toWordHtml(doc.title, html), `${base}.doc`, "application/msword");
       break;
     }
   }
@@ -153,6 +175,14 @@ export function exportBranch(doc: NorthDoc, branchName: string, format: ExportFo
       download(tempDiv.innerText, `${base}.txt`, "text/plain");
       break;
     }
+    case "doc": {
+      download(
+        toWordHtml(`${doc.title} — ${branchName}`, html),
+        `${base}.doc`,
+        "application/msword",
+      );
+      break;
+    }
   }
 }
 
@@ -177,7 +207,7 @@ export function importFromFile(file: File): Promise<NorthDoc> {
               themeOverride: d.themeOverride ?? null,
               autoTime: d.autoTime ?? true,
               flowEnabled: d.flowEnabled ?? false,
-              pageSettings: d.pageSettings,
+              pageSettings: d.pageSettings ?? DEFAULT_PAGE_SETTINGS,
               comments: d.comments ?? [],
               trackChanges: d.trackChanges ?? false,
             });

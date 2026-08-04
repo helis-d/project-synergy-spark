@@ -40,7 +40,16 @@ const ALLOWED_TAGS = new Set([
 ]);
 
 /** Attributes the editor may produce on its elements. */
-const ALLOWED_ATTR = new Set(["href", "style", "src", "alt", "colspan", "rowspan", "class", "data-north-comment"]);
+const ALLOWED_ATTR = new Set([
+  "href",
+  "style",
+  "src",
+  "alt",
+  "colspan",
+  "rowspan",
+  "class",
+  "data-north-comment",
+]);
 
 /**
  * Sanitize untrusted HTML before it is stored or written through innerHTML.
@@ -94,7 +103,19 @@ function walkAndClean(root: Element): void {
         el.removeAttribute(attr.name);
         continue;
       }
-      if (name === "style" && tag !== "span" && tag !== "img" && tag !== "td" && tag !== "th" && tag !== "mark" && tag !== "div" && tag !== "p" && tag !== "h1" && tag !== "h2" && tag !== "h3") {
+      if (
+        name === "style" &&
+        tag !== "span" &&
+        tag !== "img" &&
+        tag !== "td" &&
+        tag !== "th" &&
+        tag !== "mark" &&
+        tag !== "div" &&
+        tag !== "p" &&
+        tag !== "h1" &&
+        tag !== "h2" &&
+        tag !== "h3"
+      ) {
         el.removeAttribute(attr.name);
         continue;
       }
@@ -138,10 +159,7 @@ function walkAndClean(root: Element): void {
  */
 function sanitizeRegex(html: string): string {
   // Drop script/style blocks entirely (including content).
-  let out = html.replace(
-    /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
-    "",
-  );
+  let out = html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "");
 
   // Remove all tags that aren't in the allowlist. Keep their inner text.
   out = out.replace(/<\/?([a-zA-Z0-9]+)\b[^>]*>/g, (full, tag: string) => {
@@ -176,7 +194,13 @@ function sanitizeRegex(html: string): string {
             keptAttrs.push(`src="${value}"`);
           }
         }
-        if (name === "alt" || name === "colspan" || name === "rowspan" || name === "class" || name === "data-north-comment") {
+        if (
+          name === "alt" ||
+          name === "colspan" ||
+          name === "rowspan" ||
+          name === "class" ||
+          name === "data-north-comment"
+        ) {
           keptAttrs.push(`${name}="${value}"`);
         }
       }

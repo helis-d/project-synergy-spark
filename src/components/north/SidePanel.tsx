@@ -1,5 +1,17 @@
 import { type RefObject } from "react";
-import { Mic, Square, X, Clock, Trash2, Upload, Key, FileDown, ChevronDown, Printer, Settings } from "lucide-react";
+import {
+  Mic,
+  Square,
+  X,
+  Clock,
+  Trash2,
+  Upload,
+  Key,
+  FileDown,
+  ChevronDown,
+  Printer,
+  Settings,
+} from "lucide-react";
 import { useState } from "react";
 import { THEME_LABELS, formatHour, type ThemeName } from "@/lib/north/theme";
 import type { ExportFormat } from "@/lib/north/fileio";
