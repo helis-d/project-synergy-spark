@@ -841,7 +841,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
     pageSettings.columns > 1 ? { columnCount: pageSettings.columns, columnGap: "2em" } : undefined;
 
   return (
-    <div className="grid h-[100dvh] grid-rows-[3.5rem_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)_18rem]">
+    <div className="grid h-[100dvh] grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)_18rem]">
       <Toolbar
         theme={theme}
         flowEnabled={doc.flowEnabled}
