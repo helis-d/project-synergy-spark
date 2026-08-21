@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.anthropic.com;">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>North — Yazı Editörü</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#F5F1E8; --bg2:#EDE7D8; --ink:#1E1B16; --ink-dim:#6B6459;
+  --accent:#3A5A78; --accent2:#B8895A; --line:#D8D0BE; --panel:#FBF9F3;
+  --shadow: 0 1px 2px rgba(30,27,22,.06), 0 8px 24px rgba(30,27,22,.06);
+  --radius: 10px;
+  --transition: 900ms cubic-bezier(.4,0,.2,1);
+}
+[data-theme="dusk"]{
+  --bg:#2B2A3A; --bg2:#211F2C; --ink:#EDE7DA; --ink-dim:#A79F91;
+  --accent:#D9A05B; --accent2:#7C6A9C; --line:#413F53; --panel:#33313F;
+}
+[data-theme="night"]{
+  --bg:#12121A; --bg2:#0B0B11; --ink:#DCD6C8; --ink-dim:#6E6B78;
+  --accent:#7C8CD9; --accent2:#4A4870; --line:#26253A; --panel:#181722;
+}
+[data-theme="dawn"]{
+  --bg:#F7ECE3; --bg2:#F0DCC9; --ink:#2B211A; --ink-dim:#8A7360;
+  --accent:#C25B3E; --accent2:#3A5A78; --line:#E3CBB4; --panel:#FCF6EF;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif;
+  transition: background var(--transition), color var(--transition);
+  overflow:hidden;
+}
+.app{ display:grid; grid-template-columns: 240px 1fr 280px; grid-template-rows: 56px 1fr; height:100vh; }
+@media (max-width: 900px){
+  .app{ grid-template-columns: 1fr; grid-template-rows: 56px 1fr auto; }
+  .outline, .side{ position:fixed; top:56px; bottom:0; z-index:20; transform:translateX(-110%); transition:transform .25s ease; }
+  .outline.open{ transform:translateX(0); left:0; width:78vw; }
+  .side.open{ transform:translateX(0); right:0; left:auto; width:82vw; }
+  .mobile-toggle{ display:inline-flex !important; }
+}
+
+/* HEADER */
+.topbar{
+  grid-column:1/-1; display:flex; align-items:center; gap:14px; padding:0 16px;
+  border-bottom:1px solid var(--line); background:var(--panel); transition: background var(--transition), border-color var(--transition);
+}
+.brand{ display:flex; align-items:center; gap:8px; font-family:'Source Serif 4',serif; font-weight:700; font-size:18px; letter-spacing:.02em; flex-shrink:0; }
+.brand .dot{ width:8px;height:8px;border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
+.mobile-toggle{ display:none; background:none; border:1px solid var(--line); border-radius:6px; padding:6px 8px; color:var(--ink); cursor:pointer; }
+.toolbar{ display:flex; align-items:center; gap:2px; flex:1; overflow-x:auto; padding:0 4px; scrollbar-width:none; }
+.toolbar::-webkit-scrollbar{ display:none; }
+.toolbar button, .toolbar select{
+  background:none; border:1px solid transparent; color:var(--ink); border-radius:6px; padding:6px 8px;
+  font-size:13px; cursor:pointer; font-family:inherit; white-space:nowrap;
+}
+.toolbar button:hover, .toolbar select:hover{ background:var(--bg2); }
+.toolbar button.active{ background:var(--accent); color:var(--panel); }
+.toolbar .sep{ width:1px; height:20px; background:var(--line); margin:0 6px; flex-shrink:0; }
+.theme-badge{ font-size:11px; color:var(--ink-dim); border:1px solid var(--line); border-radius:20px; padding:4px 10px; white-space:nowrap; }
+.file-status{ font-size:11px; color:var(--ink-dim); display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.file-status .dot{ width:6px;height:6px;border-radius:50%; background:var(--accent2); }
+.file-status.saved .dot{ background:#4CAF50; }
+
+/* OUTLINE PANEL */
+.outline{ border-right:1px solid var(--line); background:var(--panel); overflow-y:auto; padding:16px 10px; transition: background var(--transition), border-color var(--transition); }
+.outline h3, .side h3{ font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); margin:4px 8px 10px; }
+.outline-item{ padding:6px 10px; border-radius:6px; cursor:grab; font-size:13px; color:var(--ink); display:flex; align-items:center; gap:6px; }
+.outline-item:hover{ background:var(--bg2); }
+.outline-item.h1{ font-weight:600; }
+.outline-item.h2{ padding-left:22px; opacity:.85; }
+.outline-item.h3{ padding-left:34px; opacity:.7; font-size:12px; }
+.outline-item.dragging{ opacity:.4; }
+.branch-list{ margin-top:20px; }
+.branch-item{ padding:6px 10px; border-radius:6px; font-size:12.5px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+.branch-item:hover{ background:var(--bg2); }
+.branch-item.active{ background:var(--accent); color:var(--panel); }
+.branch-dot{ width:6px;height:6px;border-radius:50%; background:var(--accent2); }
+.new-branch-btn{ margin:10px 8px 0; width:calc(100% - 16px); background:none; border:1px dashed var(--line); border-radius:6px; padding:6px; font-size:12px; color:var(--ink-dim); cursor:pointer; }
+
+/* MAIN EDITOR */
+.main{ overflow-y:auto; padding:40px 24px 200px; display:flex; justify-content:center; }
+.page{ width:100%; max-width:720px; }
+.md-split{ display:grid; grid-template-columns:1fr 1fr; gap:20px; max-width:1100px; }
+.editor{
+  min-height:60vh; outline:none; font-family:'Source Serif 4',serif; font-size:17px; line-height:1.75; color:var(--ink);
+  caret-color: var(--accent);
+}
+.editor h1{ font-size:1.9em; margin:1em 0 .3em; font-weight:700; }
+.editor h2{ font-size:1.4em; margin:1em 0 .3em; font-weight:600; }
+.editor h3{ font-size:1.15em; margin:.9em 0 .3em; font-weight:600; }
+.editor a{ color:var(--accent); text-decoration:underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); cursor:pointer; }
+.editor a.broken-link{ color:#B85450; text-decoration-style:wavy; }
+.editor .ghost{ color:var(--ink-dim); opacity:.55; pointer-events:none; }
+.md-raw{ width:100%; min-height:60vh; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px; font-family:'JetBrains Mono',monospace; font-size:13.5px; line-height:1.7; color:var(--ink); resize:none; outline:none; }
+
+/* LINK POPUP */
+.link-popup{
+  position:absolute; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:6px; display:none; z-index:50; min-width:220px;
+}
+.link-popup.show{ display:block; }
+.link-popup button{ display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:none; border:none; padding:8px 10px; border-radius:6px; font-size:13px; color:var(--ink); cursor:pointer; }
+.link-popup button:hover{ background:var(--bg2); }
+.link-popup input{ width:100%; margin-top:6px; padding:7px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font-size:13px; }
+
+/* FLOW MODE GHOST BAR */
+.flow-hint{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); border-radius:30px; padding:8px 16px; font-size:12.5px; color:var(--ink-dim); display:flex; align-items:center; gap:10px; opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:40;}
+.flow-hint.show{ opacity:1; pointer-events:auto; }
+.flow-hint b{ color:var(--ink); font-weight:600; }
+.flow-hint kbd{ background:var(--bg2); border-radius:4px; padding:1px 6px; font-size:11px; }
+.flow-hint.error{ border-color:#B85450; color:#B85450; }
+
+/* SIDE PANEL (branch compare / voice) */
+.side{ border-left:1px solid var(--line); background:var(--panel); padding:16px 12px; overflow-y:auto; transition: background var(--transition), border-color var(--transition); }
+.mic-btn{ width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--bg2); color:var(--ink); font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+.mic-btn.recording{ background:#B85450; color:#fff; border-color:#B85450; animation:pulse 1.4s infinite; }
+@keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.7;} }
+.voice-preview{ margin-top:10px; font-size:13px; color:var(--ink-dim); min-height:60px; border:1px dashed var(--line); border-radius:8px; padding:10px; }
+.diff-box{ font-size:12.5px; font-family:'JetBrains Mono',monospace; white-space:pre-wrap; line-height:1.6; background:var(--bg2); border-radius:8px; padding:10px; margin-top:8px; }
+.diff-add{ background: color-mix(in srgb, #4CAF50 25%, transparent); }
+.diff-del{ background: color-mix(in srgb, #B85450 25%, transparent); text-decoration:line-through; }
+.small-label{ font-size:11px; color:var(--ink-dim); margin:14px 0 6px; text-transform:uppercase; letter-spacing:.06em; }
+.api-key-row{ display:flex; gap:6px; margin-top:6px; }
+.api-key-row input{ flex:1; padding:7px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); font-size:12.5px; }
+.api-key-row button{ padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:var(--accent); color:var(--panel); cursor:pointer; font-size:12px; }
+
+/* TOAST */
+.toast-container{ position:fixed; top:70px; right:16px; z-index:100; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.toast{ background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); border-radius:8px; padding:10px 14px; font-size:13px; color:var(--ink); min-width:200px; max-width:320px; animation:slideIn .2s ease; }
+.toast.success{ border-color:#4CAF50; }
+.toast.error{ border-color:#B85450; color:#B85450; }
+@keyframes slideIn{ from{ opacity:0; transform:translateX(20px);} to{opacity:1; transform:translateX(0);} }
+</style>
+</head>
+<body data-theme="day">
+<div class="app">
+
+  <div class="topbar">
+    <button class="mobile-toggle" id="toggleOutline" aria-label="Taslak paneli">☰</button>
+    <div class="brand"><span class="dot"></span> North</div>
+    <div class="toolbar">
+      <button id="newBtn" title="Yeni (Ctrl+N)">＋</button>
+      <button id="openBtn" title="Aç (Ctrl+O)">📂</button>
+      <button id="saveBtn" title="Kaydet (Ctrl+S)">💾</button>
+      <span class="sep"></span>
+      <button data-cmd="bold" title="Kalın"><b>K</b></button>
+      <button data-cmd="italic" title="İtalik"><i>İ</i></button>
+      <button data-cmd="underline" title="Altı çizili"><u>A</u></button>
+      <button data-cmd="strikeThrough" title="Üstü çizili"><s>Ü</s></button>
+      <span class="sep"></span>
+      <select id="fontFamily" title="Yazı tipi">
+        <option value="'Source Serif 4', serif">Serif</option>
+        <option value="'Inter', sans-serif">Sans</option>
+        <option value="'JetBrains Mono', monospace">Mono</option>
+      </select>
+      <select id="fontSize" title="Boyut">
+        <option value="2">Küçük</option>
+        <option value="3" selected>Normal</option>
+        <option value="4">Büyük</option>
+        <option value="5">Başlık</option>
+      </select>
+      <span class="sep"></span>
+      <button data-block="H1">H1</button>
+      <button data-block="H2">H2</button>
+      <button data-block="H3">H3</button>
+      <button data-cmd="insertUnorderedList" title="Madde">•</button>
+      <button data-cmd="insertOrderedList" title="Numara">1.</button>
+      <span class="sep"></span>
+      <input type="color" id="textColor" value="#1E1B16" title="Renk" style="width:26px;height:26px;border:none;background:none;cursor:pointer;">
+      <span class="sep"></span>
+      <button id="linkBtn" title="Bağlantı ekle">🔗</button>
+      <button id="mdToggle" title="Markdown görünümü">MD</button>
+      <button id="flowToggle" title="Akış Modu">✨ Akış</button>
+    </div>
+    <div class="file-status" id="fileStatus"><span class="dot"></span><span id="fileNameLabel">Yeni Belge</span></div>
+    <button class="mobile-toggle" id="toggleSide" aria-label="Yan panel">⋮</button>
+    <div class="theme-badge" id="themeBadge">gün</div>
+  </div>
+
+  <div class="outline" id="outlinePanel">
+    <h3>Canlı Taslak</h3>
+    <div id="outlineList"></div>
+    <div class="branch-list">
+      <h3>Dallar</h3>
+      <div id="branchList"></div>
+      <button class="new-branch-btn" id="newBranchBtn">+ Yeni dal</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="page" id="pageWrap">
+      <div class="editor" id="editor" contenteditable="true" spellcheck="true" aria-label="Editör">
+        <h1>North'a Hoş Geldin</h1>
+        <p>Bu belge canlı bir taslak. Sağdan dal açabilir, üstten <b>Akış Modu</b>'nu açıp yazmaya devam edebilir, bir kelimeyi seçip bağlantı ekleyebilirsin. Cihazının saatine göre tema otomatik değişiyor — alttaki saat kontrolünü dene.</p>
+        <h2>Neden North</h2>
+        <p>Klasik bir kelime işlemcinin tüm temel araçları burada: fontlar, başlıklar, listeler, renkler. Ama üstüne modern bir yazarın ihtiyaç duyduğu katman eklendi.</p>
+        <h3>Dene</h3>
+        <p>Bir cümle yaz, birkaç saniye dur, ✨ Akış açıksa bir devam önerisi göreceksin. Tab ile kabul et, Esc ile reddet.</p>
+      </div>
+      <div class="md-split" id="mdSplit" style="display:none;">
+        <div class="editor" id="editorMirror" contenteditable="true" aria-label="Önizleme"></div>
+        <textarea class="md-raw" id="mdRaw" aria-label="Markdown kaynak"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="side" id="sidePanel">
+    <h3>Sesli Yazdırma</h3>
+    <button class="mic-btn" id="micBtn">🎙️ Dikteyi başlat</button>
+    <div class="voice-preview" id="voicePreview">Konuşma burada belirir — duraklamalar noktalamaya dönüşür.</div>
+
+    <h3 style="margin-top:22px;">Dal Karşılaştırma</h3>
+    <div class="small-label">Aktif dal ↔ main</div>
+    <div class="diff-box" id="diffBox">Henüz karşılaştırılacak bir dal yok.</div>
+
+    <h3 style="margin-top:22px;">Akış Modu Ayarı</h3>
+    <div class="small-label">Anthropic API Anahtarı</div>
+    <div class="api-key-row">
+      <input id="apiKeyInput" type="password" placeholder="sk-ant-...">
+      <button id="saveApiKeyBtn">Kaydet</button>
+    </div>
+    <div style="font-size:11px;color:var(--ink-dim);margin-top:6px;">Anahtar cihazında saklanır, dışarı gönderilmez. <a href="#" id="clearApiKey" style="color:var(--accent);">Temizle</a></div>
+    <div id="flowStatus" class="small-label" style="margin-top:8px; text-transform:none; letter-spacing:0;"></div>
+
+    <h3 style="margin-top:22px;">Zaman / Tema</h3>
+    <input type="range" id="timeSlider" min="0" max="23" step="1" value="12" style="width:100%;">
+    <div class="small-label" id="timeLabel">12:00 — gün</div>
+    <label style="font-size:12px;color:var(--ink-dim);display:flex;align-items:center;gap:6px;margin-top:8px;">
+      <input type="checkbox" id="autoTime" checked> cihaz saatini otomatik izle
+    </label>
+  </div>
+
+</div>
+
+<div class="link-popup" id="linkPopup" role="dialog" aria-label="Bağlantı ekle"></div>
+<div class="flow-hint" id="flowHint"><b>✨</b> öneri hazır <kbd>Tab</kbd> kabul · <kbd>Esc</kbd> vazgeç</div>
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script>
+/* ---------- YARDIMCILAR ---------- */
+function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+function showToast(msg, type=''){
+  const c=document.getElementById('toastContainer');
+  const el=document.createElement('div'); el.className='toast '+(type||''); el.textContent=msg; c.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateX(20px)'; setTimeout(()=>el.remove(),250); }, 2500);
+}
+const isElectron = !!window.northAPI;
+let currentFilePath = null;
+let autoSaveTimer = null;
+let isDirty = false;
+
+function setDirty(v){
+  isDirty = v;
+  const status=document.getElementById('fileStatus');
+  const nameLabel=document.getElementById('fileNameLabel');
+  const base=currentFilePath ? currentFilePath.split(/[\\/]/).pop() : 'Yeni Belge';
+  nameLabel.textContent = base + (v ? ' •' : '');
+  status.classList.toggle('saved', !v);
+  status.classList.toggle('unsaved', v);
+  if (isElectron && window.northAPI.setDirty) {
+    try{ window.northAPI.setDirty(v); }catch{}
+  }
+  // Otomatik localStorage kaydı
+  try{ localStorage.setItem('north_autosave_html', editor.innerHTML);
+       localStorage.setItem('north_autosave_branches', JSON.stringify(branches));
+       localStorage.setItem('north_autosave_active', activeBranch);
+  }catch{}
+}
+
+/* ---------- THEME ---------- */
+function themeForHour(h){
+  if(h>=6 && h<11) return 'dawn';
+  if(h>=11 && h<17) return 'day';
+  if(h>=17 && h<21) return 'dusk';
+  return 'night';
+}
+function labelForTheme(t){ return {dawn:'şafak',day:'gün',dusk:'akşam',night:'gece'}[t]; }
+function applyTheme(hour){
+  const t = themeForHour(hour);
+  document.body.setAttribute('data-theme', t);
+  document.getElementById('themeBadge').textContent = labelForTheme(t);
+  document.getElementById('timeLabel').textContent =
+    String(hour).padStart(2,'0')+':00 — '+labelForTheme(t);
+}
+function tick(){
+  if(document.getElementById('autoTime').checked){
+    const now = new Date();
+    document.getElementById('timeSlider').value = now.getHours();
+    applyTheme(now.getHours());
+  }
+}
+document.getElementById('timeSlider').addEventListener('input', e=>{
+  document.getElementById('autoTime').checked = false;
+  applyTheme(parseInt(e.target.value));
+});
+document.getElementById('autoTime').addEventListener('change', tick);
+tick();
+setInterval(tick, 60000);
+
+/* ---------- TOOLBAR ---------- */
+const editor = document.getElementById('editor');
+document.querySelectorAll('.toolbar [data-cmd]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.execCommand(btn.dataset.cmd, false, null);
+    editor.focus();
+  });
+});
+document.querySelectorAll('.toolbar [data-block]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.execCommand('formatBlock', false, btn.dataset.block);
+    editor.focus();
+    debouncedOutline();
+  });
+});
+document.getElementById('fontFamily').addEventListener('change', e=>{
+  document.execCommand('fontName', false, e.target.value); editor.focus();
+});
+document.getElementById('fontSize').addEventListener('change', e=>{
+  document.execCommand('fontSize', false, e.target.value); editor.focus();
+});
+document.getElementById('textColor').addEventListener('input', e=>{
+  document.execCommand('foreColor', false, e.target.value); editor.focus();
+});
+
+/* ---------- LIVE OUTLINE (debounced) ---------- */
+const outlineList = document.getElementById('outlineList');
+function renderOutline(){
+  outlineList.innerHTML = '';
+  const heads = editor.querySelectorAll('h1,h2,h3');
+  heads.forEach((h,i)=>{
+    const div = document.createElement('div');
+    div.className = 'outline-item ' + h.tagName.toLowerCase();
+    div.textContent = h.textContent || '(boş başlık)';
+    div.draggable = true;
+    div.dataset.idx = i;
+    div.addEventListener('click', ()=> h.scrollIntoView({behavior:'smooth', block:'center'}));
+    div.addEventListener('dragstart', ()=> div.classList.add('dragging'));
+    div.addEventListener('dragend', ()=> div.classList.remove('dragging'));
+    outlineList.appendChild(div);
+  });
+  if(!heads.length) outlineList.innerHTML = '<div style="font-size:12px;color:var(--ink-dim);padding:6px 10px;">Başlık ekleyince burada belirir</div>';
+}
+const debouncedOutline = debounce(renderOutline, 150);
+const debouncedDiff = debounce(()=>{ if(typeof renderDiff==='function') renderDiff(); }, 250);
+editor.addEventListener('input', ()=>{ setDirty(true); debouncedOutline(); debouncedDiff(); scheduleFlowSuggestion(); });
+renderOutline();
+
+/* ---------- SMART HYPERLINK ---------- */
+const linkPopup = document.getElementById('linkPopup');
+function isValidUrl(s){ try{ const u=new URL(s); return u.protocol==='http:'||u.protocol==='https:'; }catch{ return false; } }
+editor.addEventListener('mouseup', ()=>{
+  const sel = window.getSelection();
+  if(sel && sel.toString().trim().length>0){
+    const range = sel.getRangeAt(0).cloneRange();
+    const rect = range.getBoundingClientRect();
+    showLinkPopup(rect.left, rect.bottom+8, sel.toString());
+  }
+});
+document.getElementById('linkBtn').addEventListener('click', ()=>{
+  const sel = window.getSelection();
+  if(sel && sel.toString().trim().length>0){
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    showLinkPopup(rect.left, rect.bottom+8, sel.toString());
+  } else {
+    showToast('Önce bir metni seçin', 'error');
+  }
+});
+function showLinkPopup(x,y,text){
+  const heads = [...editor.querySelectorAll('h1,h2,h3')].map(h=>h.textContent);
+  linkPopup.innerHTML = `
+    <button data-act="web">🌐 Web linki ekle</button>
+    <button data-act="internal">📄 Bu belgede bir başlığa bağla</button>
+    <div id="innerLinkOpts" style="display:none;padding:4px 6px;"></div>
+    <input id="urlInput" placeholder="https://..." style="display:none;">
+  `;
+  linkPopup.style.left = x+'px';
+  linkPopup.style.top = y+'px';
+  linkPopup.classList.add('show');
+  const savedRange = window.getSelection().getRangeAt(0).cloneRange();
+
+  linkPopup.querySelector('[data-act="web"]').onclick = ()=>{
+    const input = linkPopup.querySelector('#urlInput');
+    input.style.display='block'; input.focus();
+    input.onkeydown = (ev)=>{
+      if(ev.key==='Enter' && input.value.trim()){
+        if(!isValidUrl(input.value.trim())){ showToast('Geçersiz URL', 'error'); return; }
+        wrapLink(savedRange, input.value.trim(), false);
+        linkPopup.classList.remove('show');
+      }
+      if(ev.key==='Escape') linkPopup.classList.remove('show');
+    };
+  };
+  linkPopup.querySelector('[data-act="internal"]').onclick = ()=>{
+    const box = linkPopup.querySelector('#innerLinkOpts');
+    box.style.display='block';
+    box.innerHTML = heads.length ? heads.map(h=>`<button data-h="${h}" style="display:block;width:100%;text-align:left;background:none;border:none;padding:6px;color:var(--ink);cursor:pointer;font-size:12.5px;">↳ ${h}</button>`).join('') : '<div style="font-size:12px;color:var(--ink-dim);padding:6px;">Belgede başlık yok</div>';
+    box.querySelectorAll('button[data-h]').forEach(b=>{
+      b.onclick = ()=>{
+        wrapLink(savedRange, '#'+encodeURIComponent(b.dataset.h), true);
+        linkPopup.classList.remove('show');
+      };
+    });
+  };
+}
+function wrapLink(range, href, internal){
+  const sel = window.getSelection();
+  sel.removeAllRanges(); sel.addRange(range);
+  document.execCommand('createLink', false, href);
+  const anchors = editor.querySelectorAll('a[href="'+CSS.escape(href)+'"]');
+  anchors.forEach(a2=>{ if(internal) a2.classList.add('internal'); });
+  setDirty(true);
+}
+document.addEventListener('click', (e)=>{
+  if(!linkPopup.contains(e.target) && e.target.id!=='linkBtn') linkPopup.classList.remove('show');
+});
+editor.addEventListener('click', (e)=>{
+  if(e.target.tagName==='A'){
+    e.preventDefault();
+    const href = e.target.getAttribute('href');
+    if(href && href.startsWith('#')){
+      const heads=[...editor.querySelectorAll('h1,h2,h3')];
+      const target = heads.find(h=>h.textContent===decodeURIComponent(href.slice(1)));
+      if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
+      else showToast('Başlık bulunamadı', 'error');
+    } else if(href){
+      if(isElectron) window.open(href,'_blank');
+      else window.open(href,'_blank','noopener');
+    }
+  }
+});
+
+/* ---------- MARKDOWN SPLIT VIEW ---------- */
+const mdSplit = document.getElementById('mdSplit');
+const mdRaw = document.getElementById('mdRaw');
+let mdMode = false;
+function htmlToMd(root){
+  let out = '';
+  root.childNodes.forEach(node=>{
+    if(node.nodeType===3){ out += node.textContent; return; }
+    const tag = node.tagName;
+    if(tag==='H1') out += '# '+node.textContent+'\n\n';
+    else if(tag==='H2') out += '## '+node.textContent+'\n\n';
+    else if(tag==='H3') out += '### '+node.textContent+'\n\n';
+    else if(tag==='B'||tag==='STRONG') out += '**'+node.textContent+'**';
+    else if(tag==='I'||tag==='EM') out += '*'+node.textContent+'*';
+    else if(tag==='U') out += '_'+node.textContent+'_';
+    else if(tag==='A') out += '['+node.textContent+']('+node.getAttribute('href')+')';
+    else if(tag==='LI') out += '- '+node.textContent+'\n';
+    else if(tag==='P') out += node.textContent+'\n\n';
+    else if(tag==='BR') out += '\n';
+    else out += node.textContent||'';
+  });
+  return out;
+}
+function mdToHtml(md){
+  return md.split('\n\n').map(block=>{
+    block = block.trim(); if(!block) return '';
+    if(block.startsWith('### ')) return '<h3>'+block.slice(4)+'</h3>';
+    if(block.startsWith('## ')) return '<h2>'+block.slice(3)+'</h2>';
+    if(block.startsWith('# ')) return '<h1>'+block.slice(2)+'</h1>';
+    if(block.startsWith('- ')) return '<ul>'+block.split('\n').map(l=>'<li>'+l.replace(/^- /,'')+'</li>').join('')+'</ul>';
+    let p = block
+      .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+      .replace(/\*(.+?)\*/g,'<i>$1</i>')
+      .replace(/\[(.+?)\]\((.+?)\)/g,'<a href="$2">$1</a>');
+    return '<p>'+p+'</p>';
+  }).join('');
+}
+document.getElementById('mdToggle').addEventListener('click', ()=>{
+  mdMode = !mdMode;
+  if(mdMode){
+    mdRaw.value = htmlToMd(editor).trim();
+    editor.parentElement.style.display='none';
+    mdSplit.style.display='grid';
+    document.getElementById('editorMirror').innerHTML = editor.innerHTML;
+  } else {
+    editor.innerHTML = mdToHtml(mdRaw.value);
+    editor.parentElement.style.display='block';
+    mdSplit.style.display='none';
+    renderOutline();
+    setDirty(true);
+  }
+});
+mdRaw.addEventListener('input', ()=>{
+  document.getElementById('editorMirror').innerHTML = mdToHtml(mdRaw.value);
+});
+
+/* ---------- BRANCH SYSTEM + PERSIST ---------- */
+let branches = { main: { html: null, parent:null } };
+let activeBranch = 'main';
+function loadPersisted(){
+  try{
+    const savedHtml = localStorage.getItem('north_autosave_html');
+    const savedBranches = localStorage.getItem('north_autosave_branches');
+    const savedActive = localStorage.getItem('north_autosave_active');
+    if(savedBranches){ const b=JSON.parse(savedBranches); if(b && b.main) branches=b; }
+    if(savedHtml && !branches.main.html) branches.main.html = savedHtml;
+    else if(!branches.main.html) branches.main.html = editor.innerHTML;
+    if(savedActive && branches[savedActive]) activeBranch = savedActive;
+    if(savedHtml) editor.innerHTML = branches[activeBranch]?.html || savedHtml;
+    else editor.innerHTML = branches[activeBranch].html;
+  }catch{ branches.main.html = editor.innerHTML; }
+}
+loadPersisted();
+
+function renderBranches(){
+  const list = document.getElementById('branchList');
+  list.innerHTML = '';
+  Object.keys(branches).forEach(name=>{
+    const div = document.createElement('div');
+    div.className = 'branch-item' + (name===activeBranch ? ' active':'');
+    div.innerHTML = `<span><span class="branch-dot"></span> ${name}</span>` + (name!=='main' ? '<span style="font-size:10px;opacity:.7;">↳ dal</span>':'');
+    div.onclick = ()=> switchBranch(name);
+    list.appendChild(div);
+  });
+}
+function switchBranch(name){
+  branches[activeBranch].html = editor.innerHTML;
+  activeBranch = name;
+  editor.innerHTML = branches[name].html;
+  renderOutline(); renderBranches(); renderDiff();
+  setDirty(true);
+}
+document.getElementById('newBranchBtn').addEventListener('click', ()=>{
+  const name = prompt('Yeni dal adı:', 'deneme-'+(Object.keys(branches).length));
+  if(!name || branches[name]){ if(branches[name]) showToast('Bu dal zaten var', 'error'); return; }
+  if(!/^[a-zA-Z0-9-_]+$/.test(name)){ showToast('Dal adı yalnızca harf, rakam, - ve _ içerebilir', 'error'); return; }
+  branches[activeBranch].html = editor.innerHTML;
+  branches[name] = { html: editor.innerHTML, parent: activeBranch };
+  switchBranch(name);
+  showToast(`Dal oluşturuldu: ${name}`, 'success');
+});
+function renderDiff(){
+  const diffBox = document.getElementById('diffBox');
+  if(activeBranch==='main'){ diffBox.textContent = 'Ana dal seçili — karşılaştırma için bir dal aç.'; return; }
+  const mainText = (branches.main.html||'').replace(/<[^>]+>/g,' ');
+  const curText = editor.innerText;
+  const mw = mainText.split(/\s+/).filter(Boolean);
+  const cw = curText.split(/\s+/).filter(Boolean);
+  const added = cw.filter(w=>!mw.includes(w)).slice(0,40);
+  const removed = mw.filter(w=>!cw.includes(w)).slice(0,40);
+  let html = '';
+  html += removed.map(w=>'<span class="diff-del">'+w+'</span>').join(' ');
+  html += (removed.length && added.length) ? '  ' : '';
+  html += added.map(w=>'<span class="diff-add">'+w+'</span>').join(' ');
+  diffBox.innerHTML = html || 'Fark bulunamadı.';
+}
+editor.addEventListener('input', debouncedDiff);
+renderBranches();
+renderOutline();
+renderDiff();
+
+/* ---------- ELECTRON FILE INTEGRATION ---------- */
+window.__northGetContent = () => {
+  // Kaydedilecek içerik: tam HTML belgesi olarak değil, editör içeriği
+  // main.js bunu doğrudan dosyaya yazıyor; HTML sarmalama burada yapılıyor
+  const htmlContent = editor.innerHTML;
+  // Eğer .md uzantısı istenirse, main.js tarafında dönüşüm gerekmez; burada ham HTML döndürüyoruz
+  // Dosya yazma sırasında uzantıya göre main.js karar verebilir; şimdilik HTML döndür
+  return htmlContent;
+};
+window.__northSetContent = (html) => {
+  editor.innerHTML = html;
+  branches[activeBranch].html = html;
+  if(activeBranch==='main') branches.main.html = html;
+  renderOutline(); renderDiff(); renderBranches();
+  setDirty(false);
+};
+
+async function handleSave(){
+  if(isElectron){
+    const res = await window.northAPI.saveFile(window.__northGetContent());
+    if(res !== false) { setDirty(false); showToast('Kaydedildi', 'success'); }
+  } else {
+    // Tarayıcı fallback: dosyayı indir
+    const blob = new Blob([editor.innerHTML], {type:'text/html'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='belge.html'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    setDirty(false); showToast('İndirildi', 'success');
+  }
+}
+async function handleOpenBrowserFallback(file){
+  const text = await file.text();
+  // Basit tip algılama: HTML ise direkt, değilse md->html
+  if(file.name.endsWith('.md')){
+    editor.innerHTML = mdToHtml(text);
+  } else {
+    editor.innerHTML = text;
+  }
+  branches[activeBranch].html = editor.innerHTML;
+  if(activeBranch==='main') branches.main.html = editor.innerHTML;
+  renderOutline(); renderDiff();
+  setDirty(false); showToast(`Açıldı: ${file.name}`, 'success');
+}
+
+document.getElementById('saveBtn').addEventListener('click', handleSave);
+document.getElementById('openBtn').addEventListener('click', async ()=>{
+  if(isElectron){ await window.northAPI.openFile(); }
+  else {
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='.html,.htm,.md,.txt';
+    inp.onchange=()=>{ if(inp.files[0]) handleOpenBrowserFallback(inp.files[0]); };
+    inp.click();
+  }
+});
+document.getElementById('newBtn').addEventListener('click', ()=>{
+  if(isDirty && !confirm('Kaydedilmemiş değişiklikler var. Yeni belge oluşturulsun mu?')) return;
+  editor.innerHTML = '<h1>Yeni Belge</h1><p>Yazmaya başla...</p>';
+  branches={ main:{ html: editor.innerHTML, parent:null }}; activeBranch='main';
+  currentFilePath=null; localStorage.removeItem('north_autosave_html');
+  renderOutline(); renderBranches(); renderDiff(); setDirty(false);
+  document.getElementById('fileNameLabel').textContent='Yeni Belge';
+  showToast('Yeni belge', 'success');
+});
+
+// Klavye kısayolları
+document.addEventListener('keydown', (e)=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){
+    e.preventDefault(); handleSave();
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='o'){
+    e.preventDefault(); document.getElementById('openBtn').click();
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='n'){
+    e.preventDefault(); document.getElementById('newBtn').click();
+  }
+});
+
+if(isElectron){
+  window.northAPI.onFileOpened((data)=>{
+    if(data.content !== undefined){
+      currentFilePath = data.filePath || currentFilePath;
+      window.__northSetContent(data.content);
+      if(data.filePath) {
+        currentFilePath = data.filePath;
+        document.getElementById('fileNameLabel').textContent = data.filePath.split(/[\\/]/).pop();
+        setDirty(false);
+        if(data.content) showToast(`Açıldı: ${currentFilePath.split(/[\\/]/).pop()}`, 'success');
+      }
+    }
+    if(data.saved){ showToast('Kaydedildi', 'success'); setDirty(false); }
+    if(data.filePath && !data.content){
+      currentFilePath = data.filePath;
+      document.getElementById('fileNameLabel').textContent = data.filePath.split(/[\\/]/).pop();
+      setDirty(false);
+    }
+  });
+  window.northAPI.onMenuAction((action)=>{
+    if(action==='new') document.getElementById('newBtn').click();
+    if(action==='find') showToast('Bul: Ctrl+F (tarayıcı araması)', '');
+  });
+  // İlk yüklemede son içeriği geri yükle
+  window.northAPI.getStoreValue('lastContent').then(v=>{
+    if(v && !localStorage.getItem('north_autosave_html')){ editor.innerHTML=v; renderOutline(); }
+  }).catch(()=>{});
+  window.northAPI.getStoreValue('recentFiles').then(()=>{}).catch(()=>{});
+}
+
+/* ---------- FLOW MODE (güvenli) ---------- */
+let flowEnabled = false;
+let flowTimer = null;
+let ghostSpan = null;
+const flowStatus = document.getElementById('flowStatus');
+
+async function loadFlowConfig(){
+  if(!isElectron) return;
+  try{
+    const cfg = await window.northAPI.getFlowConfig();
+    document.getElementById('apiKeyInput').value = cfg.apiKey || '';
+    flowStatus.textContent = cfg.apiKey ? '✓ API anahtarı ayarlı' : 'API anahtarı gerekli — aşağıdan ekleyin';
+    flowStatus.style.color = cfg.apiKey ? '#4CAF50' : 'var(--ink-dim)';
+  }catch{}
+}
+loadFlowConfig();
+
+document.getElementById('saveApiKeyBtn').addEventListener('click', async ()=>{
+  const key=document.getElementById('apiKeyInput').value.trim();
+  if(!key){ showToast('Anahtar boş', 'error'); return; }
+  if(!key.startsWith('sk-')){ showToast('Anahtar sk- ile başlamalı', 'error'); return; }
+  if(isElectron){
+    await window.northAPI.setFlowConfig({ apiKey: key });
+    showToast('API anahtarı kaydedildi', 'success');
+    loadFlowConfig();
+  } else {
+    localStorage.setItem('north_api_key', key);
+    showToast('API anahtarı kaydedildi (tarayıcı)', 'success');
+  }
+});
+document.getElementById('clearApiKey').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  document.getElementById('apiKeyInput').value='';
+  if(isElectron) await window.northAPI.setFlowConfig({ apiKey: '' });
+  else localStorage.removeItem('north_api_key');
+  showToast('API anahtarı temizlendi', 'success');
+  loadFlowConfig();
+});
+
+document.getElementById('flowToggle').addEventListener('click', (e)=>{
+  flowEnabled = !flowEnabled;
+  e.target.classList.toggle('active', flowEnabled);
+  if(!flowEnabled) removeGhost();
+  else showToast(flowEnabled ? 'Akış modu açık' : 'Akış modu kapalı', '');
+});
+
+function scheduleFlowSuggestion(){
+  clearTimeout(flowTimer);
+  removeGhost();
+  if(!flowEnabled) return;
+  flowTimer = setTimeout(fetchFlowSuggestion, 1400);
+}
+function removeGhost(){
+  if(ghostSpan && ghostSpan.parentNode){ ghostSpan.parentNode.removeChild(ghostSpan); }
+  ghostSpan = null;
+  document.getElementById('flowHint').classList.remove('show');
+  document.getElementById('flowHint').classList.remove('error');
+}
+async function fetchFlowSuggestion(){
+  const text = editor.innerText.trim();
+  if(text.length < 20) return;
+  const context = text.slice(-800);
+  const hintEl=document.getElementById('flowHint');
+  try{
+    let suggestion='';
+    let error='';
+    if(isElectron){
+      const res = await window.northAPI.fetchFlowSuggestion(context);
+      suggestion = res.suggestion || '';
+      error = res.error || '';
+    } else {
+      const localKey = localStorage.getItem('north_api_key') || '';
+      if(!localKey){ hintEl.innerHTML='<b>⚠</b> API anahtarı gerekli <kbd>Ayarlar</kbd>'; hintEl.classList.add('show'); hintEl.classList.add('error'); setTimeout(()=>hintEl.classList.remove('show'), 3000); return; }
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":localKey,"anthropic-version":"2023-06-01"},
+        body: JSON.stringify({
+          model:"claude-sonnet-4-6",
+          max_tokens:60,
+          messages:[{role:"user", content: "Aşağıdaki metnin sesini ve tonunu koru. Sadece devam eden 1 kısa cümle yaz, tırnak, açıklama veya başlık ekleme, sadece devam metnini ver:\n\n"+context}]
+        })
+      });
+      if(!res.ok){ error=`API ${res.status}`; } else {
+        const data = await res.json();
+        suggestion = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+      }
+    }
+    if(error){
+      hintEl.innerHTML = `<b>⚠</b> ${error.slice(0,80)}`;
+      hintEl.classList.add('show'); hintEl.classList.add('error');
+      setTimeout(()=>{ hintEl.classList.remove('show'); hintEl.classList.remove('error'); hintEl.innerHTML='<b>✨</b> öneri hazır <kbd>Tab</kbd> kabul · <kbd>Esc</kbd> vazgeç'; }, 3000);
+      return;
+    }
+    if(!suggestion || !flowEnabled) return;
+    insertGhost(' '+suggestion);
+  }catch(err){
+    console.error('Flow suggestion failed', err);
+    hintEl.innerHTML=`<b>⚠</b> ${String(err.message||err).slice(0,60)}`;
+    hintEl.classList.add('show'); hintEl.classList.add('error');
+    setTimeout(()=>hintEl.classList.remove('show'), 2500);
+  }
+}
+function insertGhost(text){
+  removeGhost();
+  const sel = window.getSelection();
+  if(!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  ghostSpan = document.createElement('span');
+  ghostSpan.className = 'ghost';
+  ghostSpan.textContent = text;
+  range.collapse(false);
+  range.insertNode(ghostSpan);
+  document.getElementById('flowHint').classList.add('show');
+}
+editor.addEventListener('keydown', (e)=>{
+  if(ghostSpan && e.key==='Tab'){
+    e.preventDefault();
+    ghostSpan.classList.remove('ghost');
+    ghostSpan = null;
+    document.getElementById('flowHint').classList.remove('show');
+    renderOutline(); setDirty(true);
+  } else if(ghostSpan && e.key==='Escape'){
+    e.preventDefault();
+    removeGhost();
+  } else if(ghostSpan){
+    removeGhost();
+  }
+});
+
+/* ---------- VOICE DICTATION ---------- */
+const micBtn = document.getElementById('micBtn');
+const voicePreview = document.getElementById('voicePreview');
+let recognition = null, listening = false;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if(SR){
+  recognition = new SR();
+  recognition.lang = 'tr-TR';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  let finalText = '';
+  recognition.onresult = (e)=>{
+    let interim = '';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const r = e.results[i];
+      if(r.isFinal){
+        let t = r[0].transcript.trim();
+        t = t.charAt(0).toUpperCase()+t.slice(1);
+        finalText += t + '. ';
+      } else interim += r[0].transcript;
+    }
+    voicePreview.innerHTML = finalText + '<span style="opacity:.5;">'+interim+'</span>';
+  };
+  recognition.onerror = (e)=>{ showToast('Mikrofon hatası: '+e.error, 'error'); };
+  recognition.onend = ()=>{ if(listening) { try{ recognition.start(); }catch{} } };
+  micBtn.addEventListener('click', ()=>{
+    listening = !listening;
+    micBtn.classList.toggle('recording', listening);
+    micBtn.textContent = listening ? '⏺ Dinleniyor… (durdur)' : '🎙️ Dikteyi başlat';
+    if(listening){ finalText=''; try{ recognition.start(); }catch(e){ showToast(String(e.message||e),'error'); listening=false; micBtn.classList.remove('recording'); } }
+    else { try{ recognition.stop(); }catch{} if(finalText.trim()){
+      editor.focus();
+      document.execCommand('insertText', false, finalText.trim()+' ');
+      renderOutline(); setDirty(true);
+    }}
+  });
+} else {
+  micBtn.disabled = true;
+  micBtn.textContent = '🎙️ Bu tarayıcı sesli girişi desteklemiyor';
+}
+
+/* ---------- MOBILE TOGGLES ---------- */
+document.getElementById('toggleOutline').addEventListener('click', ()=>{
+  document.getElementById('outlinePanel').classList.toggle('open');
+});
+document.getElementById('toggleSide').addEventListener('click', ()=>{
+  document.getElementById('sidePanel').classList.toggle('open');
+});
+
+// İlk durum: temiz değilse dirty false başlat ama autosave varsa dirty sayma
+setDirty(false);
+if(localStorage.getItem('north_autosave_html')) {
+  // otomatik geri yükleme yapıldı, kullanıcı bilgilensin
+  // sessiz kal, toast spam yapma
+}
+
+// Sayfa kapanırken uyarı (tarayıcı modu)
+window.addEventListener('beforeunload', (e)=>{
+  if(isDirty && !isElectron){ e.preventDefault(); e.returnValue=''; }
+});
+</script>
+</body>
+</html>
