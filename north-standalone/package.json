@@ -1,0 +1,50 @@
+{
+  "name": "north-editor",
+  "version": "0.1.0",
+  "description": "North — akış modu, dallanma ve canlı taslak destekli yazı editörü",
+  "author": "North",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "pack": "electron-builder --dir",
+    "lint": "echo \"lint: no linter configured yet\" && exit 0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.north.editor",
+    "productName": "North",
+    "copyright": "Copyright © 2026 North",
+    "files": [
+      "main.js",
+      "preload.js",
+      "north.html"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "icon.icns"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": null
+  }
+}
