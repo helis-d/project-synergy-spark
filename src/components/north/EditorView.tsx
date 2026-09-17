@@ -91,7 +91,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const activeBranch = doc.activeBranch;
   const branches = useMemo(() => Object.keys(doc.branches), [doc.branches]);
   const currentHtml = doc.branches[activeBranch]?.html ?? "";
-  const comments = doc.comments ?? [];
+  const comments = useMemo(() => doc.comments ?? [], [doc.comments]);
   const trackChanges = doc.trackChanges ?? false;
 
   useEffect(() => {
@@ -253,7 +253,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         setFlowMessage("Öneri alınamadı.");
       }
     }, 1400);
-  }, [doc.flowEnabled, removeGhost, requestFlow]);
+  }, [apiKeyConfig, doc.flowEnabled, removeGhost, requestFlow]);
 
   useEffect(
     () => () => {

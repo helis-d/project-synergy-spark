@@ -116,6 +116,17 @@ function isBranch(value: unknown): value is Branch {
   );
 }
 
+function isApiKeyConfig(value: unknown): value is ApiKeyConfig {
+  if (!value || typeof value !== "object") return false;
+  const config = value as Partial<ApiKeyConfig>;
+  return (
+    typeof config.provider === "string" &&
+    typeof config.apiKey === "string" &&
+    typeof config.baseUrl === "string" &&
+    typeof config.model === "string"
+  );
+}
+
 function isNorthDoc(value: unknown): value is NorthDoc {
   if (!value || typeof value !== "object") return false;
   const doc = value as Partial<NorthDoc>;
@@ -205,7 +216,8 @@ export function loadApiKeyConfig(): ApiKeyConfig | null {
   try {
     const raw = window.localStorage.getItem(API_KEY_STORE);
     if (!raw) return null;
-    return JSON.parse(raw) as ApiKeyConfig;
+    const parsed: unknown = JSON.parse(raw);
+    return isApiKeyConfig(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -231,7 +243,9 @@ export async function loadApiKeyConfigAsync(): Promise<ApiKeyConfig | null> {
   if (desktop?.isDesktop) {
     try {
       const raw = await desktop.getSecret(API_KEY_STORE);
-      return raw ? (JSON.parse(raw) as ApiKeyConfig) : null;
+      if (!raw) return null;
+      const parsed: unknown = JSON.parse(raw);
+      return isApiKeyConfig(parsed) ? parsed : null;
     } catch {
       return null;
     }
