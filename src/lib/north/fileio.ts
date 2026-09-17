@@ -52,11 +52,21 @@ function sanitizeFilename(name: string): string {
   );
 }
 
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
 function download(content: string, filename: string, mime: string): void {
   const desktop = window.northDesktop;
   if (desktop?.isDesktop) {
     const ext = filename.split(".").pop() ?? "txt";
-    void desktop.saveFile(content, filename, [ext]);
+    void desktop.saveFile(content, filename, [ext]).catch(() => {
+      throw new Error("Dosya kaydedilemedi.");
+    });
     return;
   }
   const blob = new Blob([content], { type: `${mime};charset=utf-8` });
@@ -64,8 +74,11 @@ function download(content: string, filename: string, mime: string): void {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  link.style.display = "none";
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /**
@@ -74,7 +87,8 @@ function download(content: string, filename: string, mime: string): void {
  * true `.docx` is a ZIP container and North ships no archiver dependency.
  */
 export function toWordHtml(title: string, bodyHtml: string): string {
-  return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${title}</title><style>
+  const safeTitle = escapeHtmlAttribute(title);
+  return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${safeTitle}</title><style>
 body { font-family: Georgia, 'Times New Roman', serif; font-size: 12pt; line-height: 1.6; }
 h1 { font-size: 22pt; } h2 { font-size: 17pt; } h3 { font-size: 14pt; }
 table { border-collapse: collapse; width: 100%; }
@@ -195,8 +209,11 @@ export function importFromFile(file: File): Promise<NorthDoc> {
 
       if (ext === "nh" || ext === "json") {
         try {
-          const parsed = JSON.parse(text) as NhFile;
-          if (parsed.format === "north" && parsed.doc) {
+          const parsed = JSON.parse(text) as Partial<NhFile>;
+          if (parsed.format !== "north" || !parsed.doc || parsed.version !== 1) {
+            throw new Error("Geçersiz veya desteklenmeyen North belgesi.");
+          }
+          {
             const d = parsed.doc;
             const rawBranches = d.branches && typeof d.branches === "object" ? d.branches : {};
             const branches = sanitizeBranches(rawBranches);
@@ -225,8 +242,9 @@ export function importFromFile(file: File): Promise<NorthDoc> {
             });
             return;
           }
-        } catch {
-          /* not JSON, try as text */
+        } catch (error) {
+          reject(error instanceof Error ? error : new Error("North belgesi okunamadı."));
+          return;
         }
       }
 
