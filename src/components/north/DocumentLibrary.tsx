@@ -59,7 +59,9 @@ export function DocumentLibrary({
           <span className="h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-primary/20" />
           <h1 className="font-serif text-xl font-bold tracking-wide">{t("library")}</h1>
         </div>
-        <label className="sr-only" htmlFor="north-locale">{t("language")}</label>
+        <label className="sr-only" htmlFor="north-locale">
+          {t("language")}
+        </label>
         <select
           id="north-locale"
           value={locale}
@@ -67,7 +69,9 @@ export function DocumentLibrary({
           className="rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-primary"
         >
           {SUPPORTED_LOCALES.map((option) => (
-            <option key={option} value={option}>{localeLabel(option)}</option>
+            <option key={option} value={option}>
+              {localeLabel(option)}
+            </option>
           ))}
         </select>
       </header>
@@ -116,9 +120,7 @@ export function DocumentLibrary({
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line py-16 text-center">
             <FileText className="h-10 w-10 text-ink-dim opacity-50" />
             <p className="text-sm text-ink-dim">
-              {query.trim()
-                ? t("noMatches")
-                : t("emptyLibrary")}
+              {query.trim() ? t("noMatches") : t("emptyLibrary")}
             </p>
           </div>
         ) : (
@@ -162,8 +164,14 @@ export function DocumentLibrary({
                       <Clock className="h-3 w-3" />
                       {formatRelativeTime(doc.updatedAt, locale)}
                     </span>
-                    <span>{words} {t("words")}</span>
-                    {branchCount > 1 && <span>{branchCount} {t("branches")}</span>}
+                    <span>
+                      {words} {t("words")}
+                    </span>
+                    {branchCount > 1 && (
+                      <span>
+                        {branchCount} {t("branches")}
+                      </span>
+                    )}
                   </div>
                 </div>
               );

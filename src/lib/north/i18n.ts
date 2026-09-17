@@ -111,7 +111,11 @@ export function saveLocale(locale: Locale): void {
   }
 }
 
-export function translate(locale: Locale, key: string, values?: Record<string, string | number>): string {
+export function translate(
+  locale: Locale,
+  key: string,
+  values?: Record<string, string | number>,
+): string {
   const template = messages[locale][key] ?? messages[DEFAULT_LOCALE][key] ?? key;
   return Object.entries(values ?? {}).reduce(
     (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
@@ -144,7 +148,10 @@ export function useLocale() {
     saveLocale(next);
     setLocaleState(next);
   }, []);
-  const t = useCallback((key: string, values?: Record<string, string | number>) => translate(locale, key, values), [locale]);
+  const t = useCallback(
+    (key: string, values?: Record<string, string | number>) => translate(locale, key, values),
+    [locale],
+  );
   return { locale, setLocale, t };
 }
 

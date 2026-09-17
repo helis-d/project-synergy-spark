@@ -16,9 +16,7 @@ function textTokens(html: string): string[] {
 
   const container = document.createElement("div");
   container.innerHTML = sanitizeHtml(html);
-  return (container.innerText || container.textContent || "")
-    .split(/\s+/)
-    .filter(Boolean);
+  return (container.innerText || container.textContent || "").split(/\s+/).filter(Boolean);
 }
 
 /** Compares word sequences without relying on object/set iteration order. */
@@ -27,15 +25,14 @@ export function compareBranchHtml(mainHtml: string, branchHtml: string): BranchD
   const branch = textTokens(branchHtml);
   const rows: Array<{ type: "added" | "removed"; word: string }> = [];
   const width = main.length + 1;
-  const table = Array.from({ length: branch.length + 1 }, () =>
-    new Array<number>(width).fill(0),
-  );
+  const table = Array.from({ length: branch.length + 1 }, () => new Array<number>(width).fill(0));
 
   for (let row = 1; row <= branch.length; row++) {
     for (let column = 1; column <= main.length; column++) {
-      table[row]![column] = branch[row - 1] === main[column - 1]
-        ? table[row - 1]![column - 1]! + 1
-        : Math.max(table[row - 1]![column]!, table[row]![column - 1]!);
+      table[row]![column] =
+        branch[row - 1] === main[column - 1]
+          ? table[row - 1]![column - 1]! + 1
+          : Math.max(table[row - 1]![column]!, table[row]![column - 1]!);
     }
   }
 
