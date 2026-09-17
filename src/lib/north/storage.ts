@@ -106,12 +106,52 @@ export function createBlankDoc(title?: string): NorthDoc {
   };
 }
 
+function isBranch(value: unknown): value is Branch {
+  if (!value || typeof value !== "object") return false;
+  const branch = value as Partial<Branch>;
+  return (
+    typeof branch.html === "string" &&
+    (typeof branch.parent === "string" || branch.parent === null) &&
+    typeof branch.createdAt === "number"
+  );
+}
+
+function isApiKeyConfig(value: unknown): value is ApiKeyConfig {
+  if (!value || typeof value !== "object") return false;
+  const config = value as Partial<ApiKeyConfig>;
+  return (
+    typeof config.provider === "string" &&
+    typeof config.apiKey === "string" &&
+    typeof config.baseUrl === "string" &&
+    typeof config.model === "string"
+  );
+}
+
+function isNorthDoc(value: unknown): value is NorthDoc {
+  if (!value || typeof value !== "object") return false;
+  const doc = value as Partial<NorthDoc>;
+  return (
+    typeof doc.id === "string" &&
+    typeof doc.title === "string" &&
+    typeof doc.activeBranch === "string" &&
+    typeof doc.updatedAt === "number" &&
+    !!doc.branches &&
+    typeof doc.branches === "object" &&
+    Object.values(doc.branches).every(isBranch) &&
+    isBranch(doc.branches[doc.activeBranch])
+  );
+}
+
 export function loadAllDocs(): Record<string, NorthDoc> {
   if (typeof window === "undefined") return {};
   try {
     const raw = window.localStorage.getItem(DOCS_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Record<string, NorthDoc>;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([id, value]) => id.length > 0 && isNorthDoc(value)),
+    ) as Record<string, NorthDoc>;
   } catch {
     return {};
   }
@@ -176,7 +216,8 @@ export function loadApiKeyConfig(): ApiKeyConfig | null {
   try {
     const raw = window.localStorage.getItem(API_KEY_STORE);
     if (!raw) return null;
-    return JSON.parse(raw) as ApiKeyConfig;
+    const parsed: unknown = JSON.parse(raw);
+    return isApiKeyConfig(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -202,7 +243,9 @@ export async function loadApiKeyConfigAsync(): Promise<ApiKeyConfig | null> {
   if (desktop?.isDesktop) {
     try {
       const raw = await desktop.getSecret(API_KEY_STORE);
-      return raw ? (JSON.parse(raw) as ApiKeyConfig) : null;
+      if (!raw) return null;
+      const parsed: unknown = JSON.parse(raw);
+      return isApiKeyConfig(parsed) ? parsed : null;
     } catch {
       return null;
     }

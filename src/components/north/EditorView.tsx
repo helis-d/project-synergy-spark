@@ -34,6 +34,7 @@ import { getFlowSuggestion } from "@/lib/north/flow.functions";
 import { exportDoc, exportBranch, importFromFile, type ExportFormat } from "@/lib/north/fileio";
 import { pushVersion } from "@/lib/north/history";
 import { sanitizeHtml } from "@/lib/north/sanitize";
+import { compareBranchHtml } from "@/lib/north/diff";
 
 const GHOST_CLASS = "north-ghost";
 
@@ -52,6 +53,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const editorRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLSpanElement | null>(null);
   const flowTimer = useRef<number | null>(null);
+  const flowRequestId = useRef(0);
   const savedRange = useRef<Range | null>(null);
   const fileImportRef = useRef<HTMLInputElement>(null);
 
@@ -90,7 +92,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const activeBranch = doc.activeBranch;
   const branches = useMemo(() => Object.keys(doc.branches), [doc.branches]);
   const currentHtml = doc.branches[activeBranch]?.html ?? "";
-  const comments = doc.comments ?? [];
+  const comments = useMemo(() => doc.comments ?? [], [doc.comments]);
   const trackChanges = doc.trackChanges ?? false;
 
   useEffect(() => {
@@ -193,6 +195,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
 
   const scheduleFlow = useCallback(() => {
     if (flowTimer.current) window.clearTimeout(flowTimer.current);
+    const requestId = ++flowRequestId.current;
     removeGhost();
     if (!doc.flowEnabled) return;
     flowTimer.current = window.setTimeout(async () => {
@@ -205,7 +208,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         return;
       }
       const text = (editor.innerText ?? "").trim();
-      if (text.length < 20) return;
+      if (text.length < 20 || requestId !== flowRequestId.current) return;
       setFlowState("loading");
       try {
         const result = await requestFlow({
@@ -217,6 +220,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
             model: keyConfig.model,
           },
         });
+        if (requestId !== flowRequestId.current) return;
         if (!result.suggestion) {
           setFlowState("error");
           setFlowMessage(
@@ -252,7 +256,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         setFlowMessage("Öneri alınamadı.");
       }
     }, 1400);
-  }, [doc.flowEnabled, removeGhost, requestFlow]);
+  }, [apiKeyConfig, doc.flowEnabled, removeGhost, requestFlow]);
 
   useEffect(
     () => () => {
@@ -594,17 +598,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
 
   const diff = useMemo(() => {
     if (activeBranch === "main") return null;
-    const strip = (html: string) => html.replace(/<[^>]+>/g, " ");
-    const mainWords = strip(doc.branches["main"]?.html ?? "")
-      .split(/\s+/)
-      .filter(Boolean);
-    const currentWords = strip(currentHtml).split(/\s+/).filter(Boolean);
-    const mainSet = new Set(mainWords);
-    const currentSet = new Set(currentWords);
-    return {
-      added: currentWords.filter((w) => !mainSet.has(w)).slice(0, 40),
-      removed: mainWords.filter((w) => !currentSet.has(w)).slice(0, 40),
-    };
+    return compareBranchHtml(doc.branches["main"]?.html ?? "", currentHtml);
   }, [activeBranch, currentHtml, doc.branches]);
 
   /* markdown mode */

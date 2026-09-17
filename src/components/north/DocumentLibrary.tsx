@@ -3,6 +3,13 @@ import { FileText, Plus, Trash2, Upload, Clock, X, Search } from "lucide-react";
 import type { NorthDoc } from "@/lib/north/storage";
 import { countWords } from "@/lib/north/markdown";
 import { sanitizeHtml } from "@/lib/north/sanitize";
+import {
+  SUPPORTED_LOCALES,
+  localeLabel,
+  formatRelativeTime,
+  useLocale,
+  type Locale,
+} from "@/lib/north/i18n";
 
 interface DocumentLibraryProps {
   docs: NorthDoc[];
@@ -12,18 +19,6 @@ interface DocumentLibraryProps {
   onDelete: (id: string) => void;
   onImport: (files: FileList) => void;
   onClose: () => void;
-}
-
-function formatRelative(ts: number): string {
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return "az önce";
-  if (min < 60) return `${min} dk önce`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} saat önce`;
-  const day = Math.floor(hr / 24);
-  if (day < 30) return `${day} gün önce`;
-  return new Date(ts).toLocaleDateString("tr-TR");
 }
 
 function previewText(html: string): string {
@@ -48,6 +43,7 @@ export function DocumentLibrary({
   onClose,
 }: DocumentLibraryProps) {
   const [query, setQuery] = useState("");
+  const { locale, setLocale, t } = useLocale();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
@@ -61,16 +57,23 @@ export function DocumentLibrary({
       <header className="flex shrink-0 items-center justify-between border-b border-line bg-panel/95 px-4 py-3 backdrop-blur-sm sm:px-6">
         <div className="flex items-center gap-2.5">
           <span className="h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-primary/20" />
-          <h1 className="font-serif text-xl font-bold tracking-wide">Belge Kitaplığı</h1>
+          <h1 className="font-serif text-xl font-bold tracking-wide">{t("library")}</h1>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-dim transition-colors hover:bg-secondary"
-          aria-label="Kapat"
+        <label className="sr-only" htmlFor="north-locale">
+          {t("language")}
+        </label>
+        <select
+          id="north-locale"
+          value={locale}
+          onChange={(event) => setLocale(event.target.value as Locale)}
+          className="rounded-md border border-line bg-card px-2 py-1.5 text-xs text-ink outline-none focus:border-primary"
         >
-          <X className="h-5 w-5" />
-        </button>
+          {SUPPORTED_LOCALES.map((option) => (
+            <option key={option} value={option}>
+              {localeLabel(option)}
+            </option>
+          ))}
+        </select>
       </header>
 
       <div className="flex flex-col gap-3 px-4 py-4 sm:px-6">
@@ -80,7 +83,7 @@ export function DocumentLibrary({
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Belge ara…"
+              placeholder={t("search")}
               className="w-full rounded-lg border border-line bg-card py-2.5 pl-9 pr-3 text-sm text-ink outline-none focus:border-primary"
             />
           </div>
@@ -90,7 +93,7 @@ export function DocumentLibrary({
             className="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-secondary active:scale-95"
           >
             <Upload className="h-4 w-4" />
-            <span className="hidden sm:inline">Dosya aç</span>
+            <span className="hidden sm:inline">{t("openFile")}</span>
           </button>
           <input
             ref={fileRef}
@@ -109,7 +112,7 @@ export function DocumentLibrary({
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-95"
           >
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Yeni belge</span>
+            <span className="hidden sm:inline">{t("newDocument")}</span>
           </button>
         </div>
 
@@ -117,9 +120,7 @@ export function DocumentLibrary({
           <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line py-16 text-center">
             <FileText className="h-10 w-10 text-ink-dim opacity-50" />
             <p className="text-sm text-ink-dim">
-              {query.trim()
-                ? "Aramanla eşleşen belge yok."
-                : "Henüz belge yok. Yeni bir belge oluştur veya dosya aç."}
+              {query.trim() ? t("noMatches") : t("emptyLibrary")}
             </p>
           </div>
         ) : (
@@ -141,7 +142,7 @@ export function DocumentLibrary({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="min-w-0 flex-1 truncate font-serif text-base font-semibold text-ink">
-                      {doc.title || "Adsız belge"}
+                      {doc.title || t("unnamed")}
                     </h3>
                     <button
                       type="button"
@@ -150,21 +151,27 @@ export function DocumentLibrary({
                         onDelete(doc.id);
                       }}
                       className="shrink-0 rounded-md p-1 text-ink-dim opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive group-hover:opacity-100"
-                      aria-label="Belgeyi sil"
+                      aria-label={t("deleteDocument")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                   <p className="line-clamp-3 min-h-[3.6em] text-[13px] leading-relaxed text-ink-dim">
-                    {preview || "Boş belge"}
+                    {preview || t("emptyDocument")}
                   </p>
                   <div className="mt-auto flex items-center gap-3 pt-2 text-[11px] text-ink-dim">
                     <span className="inline-flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {formatRelative(doc.updatedAt)}
+                      {formatRelativeTime(doc.updatedAt, locale)}
                     </span>
-                    <span>{words} kelime</span>
-                    {branchCount > 1 && <span>{branchCount} dal</span>}
+                    <span>
+                      {words} {t("words")}
+                    </span>
+                    {branchCount > 1 && (
+                      <span>
+                        {branchCount} {t("branches")}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
