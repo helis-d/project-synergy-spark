@@ -49,8 +49,27 @@ export interface ApiKeyConfig {
 }
 
 const DOCS_KEY = "north:docs:v2";
+const DOCS_BACKUP_KEY = "north:docs:backup:v2";
 const ACTIVE_KEY = "north:active-doc:v2";
 const API_KEY_STORE = "north:ai-key:v1";
+
+export type StorageStatus = "ready" | "unavailable" | "recovered" | "corrupt";
+
+let storageStatus: StorageStatus = "ready";
+
+export function getStorageStatus(): StorageStatus {
+  return storageStatus;
+}
+
+function parseDocs(raw: string | null): Record<string, NorthDoc> | null {
+  if (!raw) return {};
+  const parsed: unknown = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object") return null;
+  const docs = Object.fromEntries(
+    Object.entries(parsed).filter(([id, value]) => id.length > 0 && isNorthDoc(value)),
+  ) as Record<string, NorthDoc>;
+  return Object.keys(docs).length === Object.keys(parsed).length ? docs : null;
+}
 
 export const WELCOME_HTML = `<h1>North'a Hoş Geldin</h1><p>Bu belge canlı bir taslak. Soldaki panelden dal açabilir, üstten <b>Akış Modu</b>'nu açıp yazmaya devam edebilir, bir kelimeyi seçip bağlantı ekleyebilirsin. Yazdıkların bu cihazda otomatik saklanır.</p><h2>Neden North</h2><p>Klasik bir kelime işlemcinin tüm temel araçları burada: yazı tipleri, başlıklar, listeler, renkler. Üstüne modern bir yazarın ihtiyaç duyduğu katman eklendi.</p><h3>Dene</h3><p>Bir cümle yaz, birkaç saniye dur; ✨ Akış açıksa bir devam önerisi göreceksin. Tab ile kabul et, Esc ile vazgeç.</p>`;
 
@@ -145,24 +164,39 @@ function isNorthDoc(value: unknown): value is NorthDoc {
 export function loadAllDocs(): Record<string, NorthDoc> {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(DOCS_KEY);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-    return Object.fromEntries(
-      Object.entries(parsed).filter(([id, value]) => id.length > 0 && isNorthDoc(value)),
-    ) as Record<string, NorthDoc>;
+    const primary = parseDocs(window.localStorage.getItem(DOCS_KEY));
+    if (primary) {
+      storageStatus = "ready";
+      return primary;
+    }
+
+    const backup = parseDocs(window.localStorage.getItem(DOCS_BACKUP_KEY));
+    if (backup) {
+      storageStatus = "recovered";
+      window.localStorage.setItem(DOCS_KEY, JSON.stringify(backup));
+      return backup;
+    }
+
+    storageStatus = "corrupt";
+    return {};
   } catch {
+    storageStatus = "unavailable";
     return {};
   }
 }
 
-export function saveAllDocs(docs: Record<string, NorthDoc>): void {
-  if (typeof window === "undefined") return;
+export function saveAllDocs(docs: Record<string, NorthDoc>): boolean {
+  if (typeof window === "undefined") return false;
   try {
-    window.localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
+    const serialized = JSON.stringify(docs);
+    const previous = window.localStorage.getItem(DOCS_KEY);
+    if (previous) window.localStorage.setItem(DOCS_BACKUP_KEY, previous);
+    window.localStorage.setItem(DOCS_KEY, serialized);
+    storageStatus = "ready";
+    return true;
   } catch {
-    /* quota or private mode */
+    storageStatus = "unavailable";
+    return false;
   }
 }
 
