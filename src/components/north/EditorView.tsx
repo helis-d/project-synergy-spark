@@ -34,6 +34,7 @@ import { getFlowSuggestion } from "@/lib/north/flow.functions";
 import { exportDoc, exportBranch, importFromFile, type ExportFormat } from "@/lib/north/fileio";
 import { pushVersion } from "@/lib/north/history";
 import { sanitizeHtml } from "@/lib/north/sanitize";
+import { compareBranchHtml } from "@/lib/north/diff";
 
 const GHOST_CLASS = "north-ghost";
 
@@ -594,17 +595,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
 
   const diff = useMemo(() => {
     if (activeBranch === "main") return null;
-    const strip = (html: string) => html.replace(/<[^>]+>/g, " ");
-    const mainWords = strip(doc.branches["main"]?.html ?? "")
-      .split(/\s+/)
-      .filter(Boolean);
-    const currentWords = strip(currentHtml).split(/\s+/).filter(Boolean);
-    const mainSet = new Set(mainWords);
-    const currentSet = new Set(currentWords);
-    return {
-      added: currentWords.filter((w) => !mainSet.has(w)).slice(0, 40),
-      removed: mainWords.filter((w) => !currentSet.has(w)).slice(0, 40),
-    };
+    return compareBranchHtml(doc.branches["main"]?.html ?? "", currentHtml);
   }, [activeBranch, currentHtml, doc.branches]);
 
   /* markdown mode */

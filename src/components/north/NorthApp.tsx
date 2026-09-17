@@ -119,8 +119,9 @@ export function NorthApp() {
           setActiveId(first.id);
           setView("editor");
         }
-      } catch {
-        /* ignore */
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Dosya içe aktarılamadı.";
+        window.alert(message);
       }
     },
     [refreshDocs],
@@ -157,8 +158,6 @@ export function NorthApp() {
 
   const handleExitCancel = useCallback(() => {
     setExitDialog(false);
-    setView("library");
-    window.northDesktop?.closeWindow();
   }, []);
 
   if (view === "library" || !activeDoc) {
