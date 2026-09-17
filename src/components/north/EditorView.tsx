@@ -35,6 +35,7 @@ import { exportDoc, exportBranch, importFromFile, type ExportFormat } from "@/li
 import { pushVersion } from "@/lib/north/history";
 import { sanitizeHtml } from "@/lib/north/sanitize";
 import { compareBranchHtml } from "@/lib/north/diff";
+import { useLocale } from "@/lib/north/i18n";
 
 const GHOST_CLASS = "north-ghost";
 
@@ -87,6 +88,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   );
 
   const dictation = useDictation();
+  const { locale } = useLocale();
   const requestFlow = useServerFn(getFlowSuggestion);
 
   const activeBranch = doc.activeBranch;
@@ -214,7 +216,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         const result = await requestFlow({
           data: {
             context: text.slice(-1500),
-            language: "tr",
+            language: locale,
             apiKey: keyConfig.apiKey,
             baseUrl: keyConfig.baseUrl,
             model: keyConfig.model,
@@ -256,7 +258,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         setFlowMessage("Öneri alınamadı.");
       }
     }, 1400);
-  }, [apiKeyConfig, doc.flowEnabled, removeGhost, requestFlow]);
+  }, [apiKeyConfig, doc.flowEnabled, locale, removeGhost, requestFlow]);
 
   useEffect(
     () => () => {
