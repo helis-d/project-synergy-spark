@@ -53,6 +53,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
   const editorRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLSpanElement | null>(null);
   const flowTimer = useRef<number | null>(null);
+  const flowRequestId = useRef(0);
   const savedRange = useRef<Range | null>(null);
   const fileImportRef = useRef<HTMLInputElement>(null);
 
@@ -194,6 +195,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
 
   const scheduleFlow = useCallback(() => {
     if (flowTimer.current) window.clearTimeout(flowTimer.current);
+    const requestId = ++flowRequestId.current;
     removeGhost();
     if (!doc.flowEnabled) return;
     flowTimer.current = window.setTimeout(async () => {
@@ -206,7 +208,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
         return;
       }
       const text = (editor.innerText ?? "").trim();
-      if (text.length < 20) return;
+      if (text.length < 20 || requestId !== flowRequestId.current) return;
       setFlowState("loading");
       try {
         const result = await requestFlow({
@@ -218,6 +220,7 @@ export function EditorView({ doc, onChange, onOpenLibrary, onCreateNew }: Editor
             model: keyConfig.model,
           },
         });
+        if (requestId !== flowRequestId.current) return;
         if (!result.suggestion) {
           setFlowState("error");
           setFlowMessage(
