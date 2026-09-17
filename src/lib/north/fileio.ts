@@ -198,11 +198,23 @@ export function importFromFile(file: File): Promise<NorthDoc> {
           const parsed = JSON.parse(text) as NhFile;
           if (parsed.format === "north" && parsed.doc) {
             const d = parsed.doc;
+            const rawBranches = d.branches && typeof d.branches === "object" ? d.branches : {};
+            const branches = sanitizeBranches(rawBranches);
+            const activeBranch =
+              typeof d.activeBranch === "string" && branches[d.activeBranch]
+                ? d.activeBranch
+                : (Object.keys(branches)[0] ?? "main");
             resolve({
               id: generateId(),
-              title: d.title || file.name.replace(/\.[^.]+$/, ""),
-              activeBranch: d.activeBranch || "main",
-              branches: sanitizeBranches(d.branches),
+              title:
+                typeof d.title === "string" && d.title.trim()
+                  ? d.title
+                  : file.name.replace(/\.[^.]+$/, ""),
+              activeBranch,
+              branches:
+                Object.keys(branches).length > 0
+                  ? branches
+                  : { main: { html: "", parent: null, createdAt: Date.now() } },
               updatedAt: Date.now(),
               themeOverride: d.themeOverride ?? null,
               autoTime: d.autoTime ?? true,
